@@ -21,10 +21,12 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp)
+file(GLOB_RECURSE PROJECT_HEADERS src/*.h)
 
-add_executable(
-  time_sync 
-  src/time_sync.cpp
+add_executable(time_sync
+  ${PROJECT_SOURCES}
+  ${PROJECT_HEADERS}
 )
 target_link_libraries(time_sync
   ${catkin_LIBRARIES}
