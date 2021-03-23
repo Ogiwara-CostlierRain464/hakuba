@@ -44,6 +44,7 @@ public:
 
     std::string LiDAR_topic;
     std::string odom_topic;
+    std::string cmd_vel_topic;
 
 };
 

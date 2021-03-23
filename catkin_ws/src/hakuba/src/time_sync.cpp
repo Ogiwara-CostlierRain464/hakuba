@@ -46,23 +46,26 @@ struct GridMap{
                  const LaserScan &scan){
         auto current_angle = scan.angle_min;
         for(auto scan_distance : scan.ranges){
-            size_t ratio = 100;
-            assert(scan_distance > 0);
+            size_t ratio = 70;
+            // assert(scan_distance > 0);
 
             float x = scan_distance * cos(current_angle);
             float y = scan_distance * sin(current_angle);
-
-            // convert to global coordinate
-            x += pose.position.x;
-            y += pose.position.y;
 
             tf::Quaternion quat(pose.orientation.x, pose.orientation.y,
                                 pose.orientation.z, pose.orientation.w);
             double roll, pitch, yaw;
             tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-            auto theta = yaw;
-            auto g_x = cos(theta) * x - sin(theta) * y;
-            auto g_y = sin(theta) * x + cos(theta) * y;
+            double theta = yaw;
+            double g_x = cos(theta) * x - sin(theta) * y;
+            double g_y = sin(theta) * x + cos(theta) * y;
+            // auto g_x = x, g_y = y;
+
+                        // convert to global coordinate
+            g_x += pose.position.x;
+            g_y += pose.position.y;
+
+            // i have to solve inversed problem?
 
             // convert to Grid map coordinate
             int x2 = floor(g_x * ratio) + (width / 2);
@@ -99,6 +102,15 @@ struct DB{
     }
 };
 
+double getCurrentYawDiff(BeegoController &b, Pose &pose, Pose &first_pos){
+    return b.normalize_angle(b.calcYaw(pose) - b.calcYaw(first_pos));
+}
+
+double getCurrentDistDiff(BeegoController &b,Pose &pose, Pose &first_pos){
+    return hypot(pose.position.x - first_pos.position.x,
+                pose.position.y - first_pos.position.y);
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "time_sync"); //ノード名の初期化
@@ -119,35 +131,42 @@ int main(int argc, char **argv)
     size_t state = 0;
     while(ros::ok() && running){
         LaserScan scan;
-        b.getCurrentScan(scan);
         Pose pose;
-        b.getCurrentPose(pose);
-
-        double yaw_diff = b.normalize_angle(b.calcYaw(pose) - b.calcYaw(first_pos));
-
+      
         switch(state){
             case 0:
-                b.control(0.1, -0.1);
-                cout << yaw_diff << endl;
-                if(yaw_diff < (-M_PI / 3.0)){
+                b.control(0, -0.3);
+                // b.control(0.2, 0);
+                b.getCurrentPose(pose);
+                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3)){
+                // if(getCurrentDistDiff(b, pose, first_pos) > 1){    
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 1;
                 }
                 break;
             case 1:
+                ros::Duration(3).sleep();
+                b.getCurrentPose(pose);
+                b.getCurrentScan(scan);
                 gMap.addScan(pose, scan);
                 state = 2;
                 break;
             case 2:
-                b.control(-0.1, 0.1);
-                if(yaw_diff > M_PI / 3){
+                b.control(0, 0.3);
+                // b.control(-0.2, 0);
+                b.getCurrentPose(pose);
+                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3)){
+                // if(getCurrentDistDiff(b,pose, first_pos) > 1){    
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 3;
                 }
                 break;
             case 3:
+                ros::Duration(3).sleep();
+                b.getCurrentPose(pose);
+                b.getCurrentScan(scan);
                 gMap.addScan(pose, scan);
                 nav_msgs::OccupancyGrid grid;
                 gMap.buildMessage(grid);
