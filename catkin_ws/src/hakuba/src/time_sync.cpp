@@ -42,11 +42,8 @@ struct GridMap{
         out_msg.data = data;
     }
 
-    static void fromScan(size_t height, size_t width,
-                         const Pose &pose,
-                         const LaserScan &scan, GridMap &out_map){
-        out_map = GridMap(height, width);
-
+    void addScan(const Pose &pose,
+                 const LaserScan &scan){
         auto current_angle = scan.angle_min;
         for(auto scan_distance : scan.ranges){
             size_t ratio = 100;
@@ -75,10 +72,17 @@ struct GridMap{
                 continue;
             }
 
-            out_map.set(x2, y2, 100);
+            set(x2, y2, 100);
             assert(scan.angle_increment > 0);
             current_angle += scan.angle_increment;
         }
+    }
+
+    static void fromScan(size_t height, size_t width,
+                         const Pose &pose,
+                         const LaserScan &scan, GridMap &out_map){
+        out_map = GridMap(height, width);
+        out_map.addScan(pose, scan);
     }
 
 };
@@ -105,29 +109,57 @@ int main(int argc, char **argv)
     auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
     auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
 
-    size_t count = 0;
+    Pose first_pos;
+    b.getCurrentPose(first_pos);
+    ros::Rate loop_rate(10);
 
-    while(ros::ok() and count < 4){
-        sensor_msgs::LaserScan scan;
+    GridMap gMap(1000, 1000);
+
+    bool running = true;
+    size_t state = 0;
+    while(ros::ok() && running){
+        LaserScan scan;
         b.getCurrentScan(scan);
-        geometry_msgs::Pose pose;
+        Pose pose;
         b.getCurrentPose(pose);
 
-        constexpr size_t HEIGHT = 1000;
-        constexpr size_t WIDTH = 1000;
+        double yaw_diff = b.normalize_angle(b.calcYaw(pose) - b.calcYaw(first_pos));
 
-        GridMap gMap;
-        GridMap::fromScan(HEIGHT, WIDTH, pose, scan, gMap);
+        switch(state){
+            case 0:
+                b.control(0.1, -0.1);
+                cout << yaw_diff << endl;
+                if(yaw_diff < (-M_PI / 3.0)){
+                    b.stop();
+                    b.updateReferencePose(first_pos);
+                    state = 1;
+                }
+                break;
+            case 1:
+                gMap.addScan(pose, scan);
+                state = 2;
+                break;
+            case 2:
+                b.control(-0.1, 0.1);
+                if(yaw_diff > M_PI / 3){
+                    b.stop();
+                    b.updateReferencePose(first_pos);
+                    state = 3;
+                }
+                break;
+            case 3:
+                gMap.addScan(pose, scan);
+                nav_msgs::OccupancyGrid grid;
+                gMap.buildMessage(grid);
 
-        nav_msgs::OccupancyGrid grid;
-        gMap.buildMessage(grid);
-
-        map_pub.publish(grid);
-        map_meta_pub.publish(grid.info);
-
-        ros::Duration(1.0).sleep();
-
-        ++count;
+                map_pub.publish(grid);
+                map_meta_pub.publish(grid.info);
+                running = false;
+                b.stop();
+                break;
+        }
+        ros::spinOnce();   // ここでコールバックが呼ばれる
+        loop_rate.sleep(); // 10.0[Hz]で動作するように待機
     }
     return 0;
 }
