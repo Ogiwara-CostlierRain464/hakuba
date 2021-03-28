@@ -69,7 +69,7 @@ struct GridMap{
 
                         // convert to global coordinate
             cout << pose.position << endl;
-////
+
 //            g_x -= pose.position.x;
 //            g_y -= pose.position.y;
 
