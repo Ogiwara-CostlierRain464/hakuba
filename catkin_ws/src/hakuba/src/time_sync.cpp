@@ -49,88 +49,28 @@ struct GridMap{
 
     void addScan(const Pose &pose,
                  const LaserScan &scan){
-        auto current_angle = scan.angle_min;
-        for(auto scan_distance : scan.ranges){
+        tf::TransformListener tf_listener;
+        PointCloud laserPointsRobot;
+        PointCloud laserPointGlobal;
 
-            tf::TransformListener tf_listener;
-            PointCloud laserPointsRobot;
-            PointCloud laserPointGlobal;
+        projector.projectLaser(scan, laserPointsRobot);
+        tf_listener.transformPointCloud("robot", laserPointsRobot.header.stamp, laserPointsRobot,
+                                        "global", laserPointGlobal);
 
-            projector.projectLaser(scan, laserPointsRobot);
-            tf_listener.transformPointCloud("robot", laserPointsRobot.header.stamp, laserPointsRobot,
-                                            "global", laserPointGlobal);
-
-            for(auto & point : laserPointGlobal.points){
-
-            }
-
-
+        for(auto & point : laserPointGlobal.points){
             size_t ratio = 70;
-            // assert(scan_distance > 0);
+            int x = floor(point.x * ratio) + width / 2;
+            int y = floor(point.y * ratio) + height / 2;
 
-            float x = scan_distance * cos(current_angle);
-            float y = scan_distance * sin(current_angle);
-
-
-//            x -= pose.position.x;
-//            y -= pose.position.y;
-
-            tf::Quaternion quat(pose.orientation.x, pose.orientation.y,
-                                pose.orientation.z, pose.orientation.w);
-            double roll, pitch, yaw;
-            tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-
-            double result = yaw;
-            while (result > M_PI)
-                result -= 2.0 * M_PI;
-            while (result < -M_PI)
-                result += 2.0 * M_PI;
-
-            double g_x = cos(result) * x - sin(result) * y;
-            double g_y = sin(result) * x + cos(result) * y;
-//             double g_x = x, g_y = y;
-
-                        // convert to global coordinate
-            cout << pose.position << endl;
-
-//            g_x -= pose.position.x;
-//            g_y -= pose.position.y;
-
-            // i have to solve inversed problem?
-
-            // convert to Grid map coordinate
-            int x2 = floor(g_x * ratio) + (width / 2);
-            int y2 = floor(g_y * ratio) + (height / 2);
-//            int x2 = floor(g_x - (float)width / 2) * ratio;
-//            int y2 = floor(g_y - (float)height / 2) * ratio;
-
-
-            if(x2 < 0 or x2 >= width or y2 < 0 or y2 >= height ){
+            if(x < 0 or x >= width or y < 0 or y >= height ){
                 continue;
             }
-
-            //　だるいし、先に完成させる？DB
-            // lookup data by most nearest time
-            // just using map...
-            // another step?
-            // to support view!  recent,
-            // how to implement interface?
-            // think about Mauve DB
-            // allow programmer to look inside b-tree? : NO.
-            // just offer several methods to user
-
-            set(x2, y2, 100);
-            assert(scan.angle_increment > 0);
-            current_angle += scan.angle_increment;
+            set(x, y, 100);
         }
+
+
     }
 
-    static void fromScan(size_t height, size_t width,
-                         const Pose &pose,
-                         const LaserScan &scan, GridMap &out_map){
-        out_map = GridMap(height, width);
-        out_map.addScan(pose, scan);
-    }
 
 };
 
@@ -233,26 +173,10 @@ void map_check(BeegoController &b){
     bool running = true;
     size_t state = 0;
 
-    tf::TransformBroadcaster robot_state_broadcaster;
-
     while(ros::ok() && running){
         LaserScan scan;
         Pose pose;
         nav_msgs::OccupancyGrid grid;
-
-        b.getCurrentPose(pose);
-        TransformStamped robot_state;
-        robot_state.header.stamp = ros::Time::now();
-        robot_state.header.frame_id = "global";
-        robot_state.child_frame_id = "robot";
-
-        robot_state.transform.translation.x = pose.position.x;
-        robot_state.transform.translation.y = pose.position.y;
-        robot_state.transform.translation.z = pose.position.z;
-        robot_state.transform.rotation = pose.orientation;
-
-        robot_state_broadcaster.sendTransform(robot_state);
-
 
         switch(state){
             case 0:

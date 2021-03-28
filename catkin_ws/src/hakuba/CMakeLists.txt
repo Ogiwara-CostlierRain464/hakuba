@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   rostime
+  laser_geometry
   tf
 )
 
@@ -16,21 +17,32 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  "/usr/include/eigen3"
 )
 
-file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp)
 file(GLOB_RECURSE PROJECT_HEADERS src/*.h)
 
 add_executable(time_sync
-  ${PROJECT_SOURCES}
+  "src/time_sync.cpp"
   ${PROJECT_HEADERS}
 )
 target_link_libraries(time_sync
   ${catkin_LIBRARIES}
 )
+
+add_executable(transform
+  "src/transform.cpp"
+  ${PROJECT_HEADERS}
+)
+target_link_libraries(transform
+  ${catkin_LIBRARIES}
+)
+
+
 #############
 ## Testing ##
 #############
