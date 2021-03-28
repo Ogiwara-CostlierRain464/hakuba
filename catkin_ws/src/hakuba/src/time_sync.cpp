@@ -58,20 +58,20 @@ struct GridMap{
 //            x += pose.position.x;
 //            y += pose.position.y;
 
-//            tf::Quaternion quat(pose.orientation.x, pose.orientation.y,
-//                                pose.orientation.z, pose.orientation.w);
-//            double roll, pitch, yaw;
-//            tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-//            double theta = yaw;
-//            double g_x = cos(theta) * x - sin(theta) * y;
-//            double g_y = sin(theta) * x + cos(theta) * y;
-             auto g_x = x, g_y = y;
+            tf::Quaternion quat(pose.orientation.x, pose.orientation.y,
+                                pose.orientation.z, pose.orientation.w);
+            double roll, pitch, yaw;
+            tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+            double theta = yaw;
+            double g_x = cos(theta) * x - sin(theta) * y;
+            double g_y = sin(theta) * x + cos(theta) * y;
+//             auto g_x = x, g_y = y;
 
                         // convert to global coordinate
             cout << pose.position << endl;
-//
-            g_x -= pose.position.x;
-            g_y -= pose.position.y;
+////
+//            g_x -= pose.position.x;
+//            g_y -= pose.position.y;
 
             // i have to solve inversed problem?
 
@@ -216,11 +216,11 @@ void map_check(BeegoController &b){
 
         switch(state){
             case 0:
-//                b.control(0, -0.3);
-                b.control(0.2, 0);
+                b.control(0, -0.3);
+//                b.control(0.2, 0);
                 b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3) + RAD_TOLERANCE){
-                if(getCurrentDistDiff(b, pose, first_pos) > 1 + POS_TOLERANCE){
+                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3) + RAD_TOLERANCE){
+//                if(getCurrentDistDiff(b, pose, first_pos) > 1 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 1;
@@ -234,11 +234,11 @@ void map_check(BeegoController &b){
                 state = 2;
                 break;
             case 2:
-//                   b.control(0, 0.3);
-                b.control(-0.2, 0);
+                   b.control(0, 0.3);
+//                b.control(-0.2, 0);
                 b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3) + RAD_TOLERANCE){
-                if(getCurrentDistDiff(b,pose, first_pos) > 1 + POS_TOLERANCE){
+                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3) + RAD_TOLERANCE){
+//                if(getCurrentDistDiff(b,pose, first_pos) > 1 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 3;
