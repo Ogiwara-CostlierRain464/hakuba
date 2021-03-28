@@ -54,6 +54,10 @@ struct GridMap{
             float x = scan_distance * cos(current_angle);
             float y = scan_distance * sin(current_angle);
 
+
+//            x += pose.position.x;
+//            y += pose.position.y;
+
 //            tf::Quaternion quat(pose.orientation.x, pose.orientation.y,
 //                                pose.orientation.z, pose.orientation.w);
 //            double roll, pitch, yaw;
@@ -65,9 +69,9 @@ struct GridMap{
 
                         // convert to global coordinate
             cout << pose.position << endl;
-
-//            g_x -= pose.position.x;
-//            g_y -= pose.position.y;
+//
+            g_x -= pose.position.x;
+            g_y -= pose.position.y;
 
             // i have to solve inversed problem?
 
@@ -215,8 +219,8 @@ void map_check(BeegoController &b){
 //                b.control(0, -0.3);
                 b.control(0.2, 0);
                 b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3)){
-                if(getCurrentDistDiff(b, pose, first_pos) > 1){
+//                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3) + RAD_TOLERANCE){
+                if(getCurrentDistDiff(b, pose, first_pos) > 1 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 1;
@@ -227,25 +231,14 @@ void map_check(BeegoController &b){
                 b.getCurrentPose(pose);
                 b.getCurrentScan(scan);
                 gMap.addScan(pose, scan);
-
-
-                gMap.buildMessage(grid);
-
-                map_pub.publish(grid);
-                map_meta_pub.publish(grid.info);
-                assert(ros::Duration(0.5).sleep());
-                exit(0);
-
                 state = 2;
-
-
                 break;
             case 2:
 //                   b.control(0, 0.3);
                 b.control(-0.2, 0);
                 b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3)){
-                if(getCurrentDistDiff(b,pose, first_pos) > 1){
+//                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3) + RAD_TOLERANCE){
+                if(getCurrentDistDiff(b,pose, first_pos) > 1 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 3;
