@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include <tf/transform_broadcaster.h>
+#include <laser_geometry/laser_geometry.h>
 
 #include "beego_controller.h"
 
@@ -44,10 +45,26 @@ struct GridMap{
         out_msg.data = data;
     }
 
+    laser_geometry::LaserProjection projector;
+
     void addScan(const Pose &pose,
                  const LaserScan &scan){
         auto current_angle = scan.angle_min;
         for(auto scan_distance : scan.ranges){
+
+            tf::TransformListener tf_listener;
+            PointCloud laserPointsRobot;
+            PointCloud laserPointGlobal;
+
+            projector.projectLaser(scan, laserPointsRobot);
+            tf_listener.transformPointCloud("robot", laserPointsRobot.header.stamp, laserPointsRobot,
+                                            "global", laserPointGlobal);
+
+            for(auto & point : laserPointGlobal.points){
+
+            }
+
+
             size_t ratio = 70;
             // assert(scan_distance > 0);
 
@@ -55,17 +72,23 @@ struct GridMap{
             float y = scan_distance * sin(current_angle);
 
 
-//            x += pose.position.x;
-//            y += pose.position.y;
+//            x -= pose.position.x;
+//            y -= pose.position.y;
 
             tf::Quaternion quat(pose.orientation.x, pose.orientation.y,
                                 pose.orientation.z, pose.orientation.w);
             double roll, pitch, yaw;
             tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
-            double theta = yaw;
-            double g_x = cos(theta) * x - sin(theta) * y;
-            double g_y = sin(theta) * x + cos(theta) * y;
-//             auto g_x = x, g_y = y;
+
+            double result = yaw;
+            while (result > M_PI)
+                result -= 2.0 * M_PI;
+            while (result < -M_PI)
+                result += 2.0 * M_PI;
+
+            double g_x = cos(result) * x - sin(result) * y;
+            double g_y = sin(result) * x + cos(result) * y;
+//             double g_x = x, g_y = y;
 
                         // convert to global coordinate
             cout << pose.position << endl;
@@ -209,10 +232,27 @@ void map_check(BeegoController &b){
 
     bool running = true;
     size_t state = 0;
+
+    tf::TransformBroadcaster robot_state_broadcaster;
+
     while(ros::ok() && running){
         LaserScan scan;
         Pose pose;
         nav_msgs::OccupancyGrid grid;
+
+        b.getCurrentPose(pose);
+        TransformStamped robot_state;
+        robot_state.header.stamp = ros::Time::now();
+        robot_state.header.frame_id = "global";
+        robot_state.child_frame_id = "robot";
+
+        robot_state.transform.translation.x = pose.position.x;
+        robot_state.transform.translation.y = pose.position.y;
+        robot_state.transform.translation.z = pose.position.z;
+        robot_state.transform.rotation = pose.orientation;
+
+        robot_state_broadcaster.sendTransform(robot_state);
+
 
         switch(state){
             case 0:
