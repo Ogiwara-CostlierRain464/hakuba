@@ -9,16 +9,16 @@ beego_controller.cpp
 BeegoController::BeegoController() : nh_("~")
 {
     if(!nh_.getParam("lidar_topic", LiDAR_topic)){
-//         LiDAR_topic = "/beego/scan";
-        LiDAR_topic = "/scan";
+         LiDAR_topic = "/beego/scan";
+//        LiDAR_topic = "/scan";
     }
     if(!nh_.getParam("odom_topic", odom_topic)){
-//         odom_topic = "/beego/diff_drive_controller/odom";
-        odom_topic = "/odom";
+         odom_topic = "/beego/diff_drive_controller/odom";
+//        odom_topic = "/odom";
     }
     if(!nh_.getParam("cmd_vel_topic", cmd_vel_topic)){
-//         cmd_vel_topic = "/beego/diff_drive_controller/cmd_vel";
-        cmd_vel_topic = "/cmd_vel";
+         cmd_vel_topic = "/beego/diff_drive_controller/cmd_vel";
+//        cmd_vel_topic = "/cmd_vel";
     }
 
     vel_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_vel_topic, 10);

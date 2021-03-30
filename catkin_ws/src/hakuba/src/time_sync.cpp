@@ -53,9 +53,9 @@ struct GridMap{
         PointCloud laserPointGlobal;
 
         projector.projectLaser(scan, laserPointsRobot);
-        laserPointsRobot.header.frame_id = "base_link";
-        tfListener.transformPointCloud("odom", laserPointsRobot.header.stamp, laserPointsRobot,
-                                        "base_link", laserPointGlobal);
+        laserPointsRobot.header.frame_id = "beego/base_link";
+        tfListener.transformPointCloud("beego/odom", laserPointsRobot.header.stamp, laserPointsRobot,
+                                        "beego/base_link", laserPointGlobal);
 
         for(auto & point : laserPointGlobal.points){
             size_t ratio = 70;
