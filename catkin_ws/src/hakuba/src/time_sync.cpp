@@ -48,7 +48,8 @@ struct GridMap{
     laser_geometry::LaserProjection projector;
 
     void addScan(const Pose &pose,
-                 const LaserScan &scan){
+                 const LaserScan &scan,
+                 int occupy = 100){
         PointCloud laserPointsRobot;
         PointCloud laserPointGlobal;
 
@@ -58,14 +59,14 @@ struct GridMap{
                                         "beego/base_link", laserPointGlobal);
 
         for(auto & point : laserPointGlobal.points){
-            size_t ratio = 70;
+            size_t ratio = 100;
             int x = floor(point.x * ratio) + width / 2;
             int y = floor(point.y * ratio) + height / 2;
 
             if(x < 0 or x >= width or y < 0 or y >= height ){
                 continue;
             }
-            set(x, y, 100);
+            set(x, y, occupy);
         }
 
 
@@ -108,6 +109,7 @@ void map_check(BeegoController &b){
 
     bool running = true;
     size_t state = 0;
+    size_t count = 0;
 
     while(ros::ok() && running){
         LaserScan scan;
@@ -116,44 +118,47 @@ void map_check(BeegoController &b){
 
         switch(state){
             case 0:
-//                b.control(0, -0.3);
-                b.control(0.2, -0.3);
+                b.control(10, 0.3);
                 b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3) + RAD_TOLERANCE){
-                if(getCurrentDistDiff(b, pose, first_pos) > 1 + POS_TOLERANCE){
+                b.getCurrentScan(scan);
+//                gMap.addScan(pose, scan);
+                if(getCurrentDistDiff(b, pose, first_pos) > 1.5 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 1;
                 }
                 break;
             case 1:
-                assert(ros::Duration(3).sleep());
+                assert(ros::Duration(1).sleep());
                 b.getCurrentPose(pose);
                 b.getCurrentScan(scan);
-                gMap.addScan(pose, scan);
+                gMap.addScan(pose, scan, -1);
                 state = 2;
                 break;
             case 2:
-//                   b.control(0, 0.3);
-                b.control(-0.2, 0.3);
+                b.control(-10, -0.3);
                 b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3) + RAD_TOLERANCE){
-                if(getCurrentDistDiff(b,pose, first_pos) > 1 + POS_TOLERANCE){
+                b.getCurrentScan(scan);
+                count++;
+                if(count % 10 == 0){
+                    gMap.addScan(pose, scan);
+                }
+                if(getCurrentDistDiff(b,pose, first_pos) > 1.5 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 3;
                 }
                 break;
             case 3:
-                assert(ros::Duration(3).sleep());
+                assert(ros::Duration(1).sleep());
                 b.getCurrentPose(pose);
                 b.getCurrentScan(scan);
-                gMap.addScan(pose, scan);
+                gMap.addScan(pose, scan, -1);
                 gMap.buildMessage(grid);
 
                 map_pub.publish(grid);
                 map_meta_pub.publish(grid.info);
-                assert(ros::Duration(0.5).sleep());
+                assert(ros::Duration(1).sleep());
                 running = false;
                 b.stop();
                 break;
