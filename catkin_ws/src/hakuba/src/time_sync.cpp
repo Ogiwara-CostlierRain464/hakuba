@@ -19,13 +19,13 @@ using namespace nav_msgs;
 struct GridMap{
     size_t height = 0;
     size_t width = 0;
+    tf::TransformListener &tfListener;
 
     vector<int8_t> data{};
 
-    GridMap() = default;
 
-    GridMap(size_t height_, size_t width_):
-            height(height_), width(width_){
+    GridMap(size_t height_, size_t width_, tf::TransformListener &l):
+            height(height_), width(width_), tfListener(l){
         data.resize(height * width);
         fill(data.begin(), data.end(), 0);
     }
@@ -49,13 +49,13 @@ struct GridMap{
 
     void addScan(const Pose &pose,
                  const LaserScan &scan){
-        tf::TransformListener tf_listener;
         PointCloud laserPointsRobot;
         PointCloud laserPointGlobal;
 
         projector.projectLaser(scan, laserPointsRobot);
-        tf_listener.transformPointCloud("robot", laserPointsRobot.header.stamp, laserPointsRobot,
-                                        "global", laserPointGlobal);
+        laserPointsRobot.header.frame_id = "base_link";
+        tfListener.transformPointCloud("odom", laserPointsRobot.header.stamp, laserPointsRobot,
+                                        "base_link", laserPointGlobal);
 
         for(auto & point : laserPointGlobal.points){
             size_t ratio = 70;
@@ -95,80 +95,16 @@ double getCurrentDistDiff(BeegoController &b,Pose &pose, Pose &first_pos){
                 pose.position.y - first_pos.position.y);
 }
 
-void walk_stop_scan(BeegoController &b){
-    auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
-    auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
-
-    Pose first_pos;
-    b.getCurrentPose(first_pos);
-    ros::Rate loop_rate(10);
-
-    GridMap gMap(1000, 1000);
-
-    bool running = true;
-    size_t state = 0;
-    while(ros::ok() && running){
-        LaserScan scan;
-        Pose pose;
-
-        switch(state){
-            case 0:
-//                b.control(0, -0.3);
-                b.control(0.2, 0);
-                b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3)){
-                if(getCurrentDistDiff(b, pose, first_pos) > 1){
-                    b.stop();
-                    b.updateReferencePose(first_pos);
-                    state = 1;
-                }
-                break;
-            case 1:
-                ros::Duration(3).sleep();
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
-                gMap.addScan(pose, scan);
-                state = 2;
-                break;
-            case 2:
-//                b.control(0, 0.3);
-                b.control(-0.2, 0);
-                b.getCurrentPose(pose);
-//                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3)){
-                if(getCurrentDistDiff(b,pose, first_pos) > 1){
-                    b.stop();
-                    b.updateReferencePose(first_pos);
-                    state = 3;
-                }
-                break;
-            case 3:
-                ros::Duration(3).sleep();
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
-                gMap.addScan(pose, scan);
-                nav_msgs::OccupancyGrid grid;
-                gMap.buildMessage(grid);
-
-                map_pub.publish(grid);
-                map_meta_pub.publish(grid.info);
-                running = false;
-                b.stop();
-                break;
-        }
-        ros::spinOnce();   // ここでコールバックが呼ばれる
-        loop_rate.sleep(); // 10.0[Hz]で動作するように待機
-    }
-}
-
 void map_check(BeegoController &b){
     auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
     auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
+    tf::TransformListener tf_listener;
 
     Pose first_pos;
     b.getCurrentPose(first_pos);
     ros::Rate loop_rate(10);
 
-    GridMap gMap(1000, 1000);
+    GridMap gMap(1000, 1000, tf_listener);
 
     bool running = true;
     size_t state = 0;
@@ -180,11 +116,11 @@ void map_check(BeegoController &b){
 
         switch(state){
             case 0:
-                b.control(0, -0.3);
-//                b.control(0.2, 0);
+//                b.control(0, -0.3);
+                b.control(0.2, -0.3);
                 b.getCurrentPose(pose);
-                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3) + RAD_TOLERANCE){
-//                if(getCurrentDistDiff(b, pose, first_pos) > 1 + POS_TOLERANCE){
+//                if(getCurrentYawDiff(b, pose, first_pos) < (-M_PI / 3) + RAD_TOLERANCE){
+                if(getCurrentDistDiff(b, pose, first_pos) > 1 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 1;
@@ -198,11 +134,11 @@ void map_check(BeegoController &b){
                 state = 2;
                 break;
             case 2:
-                   b.control(0, 0.3);
-//                b.control(-0.2, 0);
+//                   b.control(0, 0.3);
+                b.control(-0.2, 0.3);
                 b.getCurrentPose(pose);
-                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3) + RAD_TOLERANCE){
-//                if(getCurrentDistDiff(b,pose, first_pos) > 1 + POS_TOLERANCE){
+//                if(getCurrentYawDiff(b, pose, first_pos) > (M_PI / 3) + RAD_TOLERANCE){
+                if(getCurrentDistDiff(b,pose, first_pos) > 1 + POS_TOLERANCE){
                     b.stop();
                     b.updateReferencePose(first_pos);
                     state = 3;

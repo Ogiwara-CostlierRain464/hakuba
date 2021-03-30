@@ -21,7 +21,7 @@ int main(int argc, char **argv){
     BeegoController b;
     ros::Duration(1.0).sleep(); // 1.0秒待機
     ros::spinOnce(); // はじめにコールバック関数を呼んでおく
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(150);
 
     tf::TransformBroadcaster robot_state_broadcaster;
 
@@ -33,8 +33,8 @@ int main(int argc, char **argv){
         b.getCurrentPose(pose);
         TransformStamped robot_state;
         robot_state.header.stamp = ros::Time::now();
-        robot_state.header.frame_id = "global";
-        robot_state.child_frame_id = "robot";
+        robot_state.header.frame_id = "odom";
+        robot_state.child_frame_id = "base_link";
 
         robot_state.transform.translation.x = pose.position.x;
         robot_state.transform.translation.y = pose.position.y;
@@ -43,7 +43,6 @@ int main(int argc, char **argv){
 
         robot_state_broadcaster.sendTransform(robot_state);
 
-        ros::spinOnce();   // ここでコールバックが呼ばれる
         loop_rate.sleep(); // 10.0[Hz]で動作するように待機
     }
     return 0;
