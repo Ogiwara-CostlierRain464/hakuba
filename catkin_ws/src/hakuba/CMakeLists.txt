@@ -28,6 +28,7 @@ file(GLOB_RECURSE PROJECT_HEADERS src/*.h)
 
 add_executable(time_sync
   "src/time_sync.cpp"
+  "src/beego_controller.cpp"
   ${PROJECT_HEADERS}
 )
 target_link_libraries(time_sync
@@ -36,6 +37,7 @@ target_link_libraries(time_sync
 
 add_executable(transform
   "src/transform.cpp"
+  "src/beego_controller.cpp"
   ${PROJECT_HEADERS}
 )
 target_link_libraries(transform
