@@ -7,7 +7,7 @@
 #include <vector>
 #include <tf/transform_broadcaster.h>
 #include <laser_geometry/laser_geometry.h>
-
+#include <random>
 #include "beego_controller.h"
 
 using namespace std;
@@ -111,10 +111,17 @@ void map_check(BeegoController &b){
     size_t state = 0;
     size_t count = 0;
 
+    Time time_begin = Time::now();
+
     while(ros::ok() && running){
         LaserScan scan;
         Pose pose;
         nav_msgs::OccupancyGrid grid;
+
+        auto elapsed = Time::now() - time_begin;
+        if(elapsed.toSec() >= 30){
+            break;
+        }
 
         switch(state){
             case 0:
@@ -168,6 +175,80 @@ void map_check(BeegoController &b){
     }
 }
 
+void roomba(BeegoController &b){
+    auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
+    auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
+    tf::TransformListener tf_listener;
+
+    Pose first_pose;
+    ros::Rate loop_rate(10);
+
+    GridMap gMap(1000, 1000, tf_listener);
+
+    // 0: running, 1: rotate
+    size_t state = 0;
+    size_t count = 0;
+
+    Time time_begin = Time::now();
+
+    while(ros::ok()){
+        LaserScan scan;
+        Pose pose;
+        nav_msgs::OccupancyGrid grid;
+        ++count;
+
+        auto elapsed = Time::now() - time_begin;
+        if(elapsed.toSec() >= 30){
+            break;
+        }
+
+        b.getCurrentScan(scan);
+
+        int i;
+        switch(state){
+            case 0:
+                b.control(2, 0);
+                b.getCurrentPose(pose);
+                b.getCurrentScan(scan);
+
+                if(count >= 20){
+                    count = 0;
+                    gMap.addScan(pose, scan);
+                }
+
+                i = -scan.angle_min / scan.angle_increment;
+                if(scan.ranges[i] < 0.7){
+                    b.stop();
+                    b.updateReferencePose(first_pose);
+                    state = 1;
+                }
+                break;
+            case 1:
+                assert(ros::Duration(1).sleep());
+                b.control(0, 1);
+                b.getCurrentPose(pose);
+
+                if(getCurrentYawDiff(b, pose, first_pose) > (M_PI / 2)){
+                    b.stop();
+                    state = 0;
+                }
+                break;
+
+        }
+        ros::spinOnce();   // ここでコールバックが呼ばれる
+        loop_rate.sleep(); // 10.0[Hz]で動作するように待機
+    }
+
+    assert(ros::Duration(1).sleep());
+    OccupancyGrid  grid;
+    gMap.buildMessage(grid);
+
+    map_pub.publish(grid);
+    map_meta_pub.publish(grid.info);
+    assert(ros::Duration(1).sleep());
+    b.stop();
+}
+
 
 int main(int argc, char **argv)
 {
@@ -176,7 +257,7 @@ int main(int argc, char **argv)
     ros::Duration(1.0).sleep(); // 1.0秒待機
     ros::spinOnce(); // はじめにコールバック関数を呼んでおく
 
-    map_check(b);
+    roomba(b);
 
     return 0;
 }
