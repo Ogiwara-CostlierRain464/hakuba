@@ -5,8 +5,9 @@
 #include <ros/duration.h>
 #include <sensor_msgs/LaserScan.h>
 #include <functional>
-#include <mutex>
-#include <thread>
+#include <ecl/threads.hpp>
+#include <ecl/utilities.hpp>
+#include <ecl/utilities/function_objects.hpp>
 #include <immintrin.h>
 
 template <typename T>
@@ -20,20 +21,25 @@ public:
             {}
 
     ros::Time getLatestTime(){
-        std::lock_guard<std::mutex> lock(latestTimeMutex);
-        return latestTime;
+        latestTimeMutex.lock();
+        auto copy = latestTime;
+        latestTimeMutex.unlock();
+        return copy;
     }
 
     void insertLatest(ros::Time &at, T& data){
-        std::lock_guard<std::mutex> lock(tableMutex);
-        std::lock_guard<std::mutex> lock(latestTimeMutex);
+        tableMutex.lock();
+        latestTimeMutex.lock();
         table[at] = data;
         latestTime = at;
+        tableMutex.unlock();
+        latestTimeMutex.unlock();
     }
 
     void getLatest(T& out_data){
-        std::lock_guard<std::mutex> lock(tableMutex);
+        tableMutex.lock();
         out_data = table[getLatestTime()];
+        tableMutex.unlock();
     }
 
 
@@ -41,80 +47,48 @@ private:
     ros::Time latestTime = ros::Time::now();
     ros::Duration maxStorageTime;
 
-    std::mutex latestTimeMutex{};
-    std::mutex tableMutex{};
+    ecl::Mutex latestTimeMutex{};
+    ecl::Mutex tableMutex{};
 
     TableType table;
-};
-
-// Used in Incremental View query.
-// check other table
-// user side wanna specify table
-//
-
-struct IncrementalViewHandler{
-
 };
 
 class IncrementalView{
 public:
     typedef std::map<std::pair<double, double>, int> TableType;
 
-    explicit IncrementalView(const std::function<(void) IncrementalView&> &query_)
-    : query(query_)
-    , queryThread(std::thread(&IncrementalView::queryThread, this))
-    {
-    }
+    explicit IncrementalView(const std::function< void(IncrementalView*) > &query_)
+    : query(query_), queryThread(ecl::Thread(ecl::generateFunctionObject(&IncrementalView::onQueryThread, *this)))
+    {}
 
     // special range query for GridMap
     void insert(std::pair<double, double> at, int occupy){
-        std::lock_guard<std::mutex> lock(tableMutex);
+        tableMutex.lock();
         table[at] = occupy;
+        tableMutex.unlock();
     }
 
-    void rangeQuery(const std::function<(void) TableType&> &range_query){
+    void rangeQuery(const std::function<void (TableType&)> &range_query){
         // by using this kind of interface, creation on table array is always
         // required, which will lead to low performance.
-        std::lock_guard<std::mutex> lock(tableMutex);
+        tableMutex.lock();
         range_query(table);
+        tableMutex.unlock();
     }
 
 private:
-    void queryThread(){
-        query(this);
+    void onQueryThread(){
+        auto ptr = this;
+        assert(ptr != nullptr);
+        query(ptr);
     }
 
-    const std::function<(void) IncrementalView&> &query;
-    std::thread queryThread;
+    const std::function<void (IncrementalView*)> &query;
+    ecl::Thread queryThread;
 
-    typedef std::map<std::pair<double, double>, int> TableType;
     TableType table;
-    std::mutex tableMutex;
+    ecl::Mutex tableMutex;
 };
-
-void user(){
-    TimeSeriesTable<sensor_msgs::LaserScan> scanTable;
-
-    IncrementalView gridMapView([&scanTable](IncrementalView& view){
-        ros::Time lastTime{};
-        for(;;){
-            auto time = scanTable.getLatestTime();
-            if(time == lastTime){
-                _mm_pause();
-                continue;
-            }else{
-                // calculate coordinate at here and add to view
-                sensor_msgs::LaserScan scan;
-                scanTable.getLatest(scan);
-
-                // use tf
-
-//                view.insert();
-            }
-        }
-    });
-
-}
 
 struct DB{
     // tf stores data by std::set (what a naive implementation...)

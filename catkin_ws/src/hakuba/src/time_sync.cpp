@@ -9,6 +9,8 @@
 #include <laser_geometry/laser_geometry.h>
 #include <random>
 #include "beego_controller.h"
+#include "db.h"
+#include <ecl/threads.hpp>
 
 using namespace std;
 using namespace ros;
@@ -240,6 +242,113 @@ void roomba(BeegoController &b){
 }
 
 
+void using_db(BeegoController &b){
+    auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
+    auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
+    tf::TransformListener tf_listener;
+
+    Pose first_pose;
+    ros::Rate loop_rate(10);
+
+    // 0: running, 1: rotate
+    size_t state = 0;
+    size_t count = 0;
+
+    Time time_begin = Time::now();
+
+    TimeSeriesTable<LaserScan> scanTable{};
+    IncrementalView map_view([&scanTable, &tf_listener](IncrementalView *view){
+        ros::Time lastTime{};
+        ros::Duration(0.1).sleep();
+        laser_geometry::LaserProjection projector;
+        for(;;){
+            auto time = scanTable.getLatestTime();
+            if(time == lastTime){
+                ros::Duration(0.1).sleep();
+                continue;
+            }else{
+                // calculate coordinate at here and add to view
+                // you should calculate at here by yourself.
+
+                sensor_msgs::LaserScan scan;
+                scanTable.getLatest(scan);
+
+                PointCloud laserPointsRobot;
+                PointCloud laserPointGlobal;
+
+                projector.projectLaser(scan, laserPointsRobot);
+                laserPointsRobot.header.frame_id = "base_link";
+                tf_listener.transformPointCloud(
+                        "odom", laserPointsRobot.header.stamp,
+                        laserPointsRobot,
+                        "base_link", laserPointGlobal);
+
+                for(auto & point : laserPointGlobal.points){
+                    view->insert(make_pair(point.x, point.y), 100);
+                }
+            }
+        }
+    });
+
+    while(ros::ok()){
+        LaserScan scan;
+        Pose pose;
+        nav_msgs::OccupancyGrid grid;
+        ++count;
+
+        auto elapsed = Time::now() - time_begin;
+        if(elapsed.toSec() >= 60){
+            break;
+        }
+
+        bool should_stop = false;
+        switch(state){
+            case 0:
+                b.control(0.7, 0);
+                b.getCurrentPose(pose);
+                b.getCurrentScan(scan);
+
+                if(count >= 20){
+                    count = 0;
+                    // add to DB
+                    scanTable.insertLatest(scan.header.stamp, scan);
+                }
+
+                map_view.rangeQuery([&should_stop, &pose](IncrementalView::TableType &table){
+                    for(auto & point : table){
+                        double distance =
+                                abs(pose.position.x - point.first.first) +
+                                abs(pose.position.y - point.first.second);
+
+                        if(distance < 1.3){
+                            should_stop = true;
+                        }
+                    }
+                });
+
+                if(should_stop){ // if there is something in front of robot.
+                    b.stop();
+                    b.updateReferencePose(first_pose);
+                    assert(ros::Duration(1).sleep());
+                    state = 1;
+                }
+                break;
+            case 1:
+                b.control(0, 1);
+                b.getCurrentPose(pose);
+
+                if(getCurrentYawDiff(b, pose, first_pose) > (M_PI / 2)){
+                    b.stop();
+                    state = 0;
+                }
+                break;
+
+        }
+    }
+
+}
+
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "time_sync"); //ノード名の初期化
@@ -247,7 +356,7 @@ int main(int argc, char **argv)
     ros::Duration(1.0).sleep(); // 1.0秒待機
     ros::spinOnce(); // はじめにコールバック関数を呼んでおく
 
-    roomba(b);
+    using_db(b);
 
     return 0;
 }

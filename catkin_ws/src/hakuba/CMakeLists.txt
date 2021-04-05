@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   rostime
   laser_geometry
   tf
+  ecl_threads
+  ecl_utilities
 )
 
 catkin_package(
