@@ -54,9 +54,9 @@ struct GridMap{
         PointCloud laserPointGlobal;
 
         projector.projectLaser(scan, laserPointsRobot);
-        laserPointsRobot.header.frame_id = "beego/base_link";
-        tfListener.transformPointCloud("beego/odom", laserPointsRobot.header.stamp, laserPointsRobot,
-                                        "beego/base_link", laserPointGlobal);
+        laserPointsRobot.header.frame_id = "base_link";
+        tfListener.transformPointCloud("odom", laserPointsRobot.header.stamp, laserPointsRobot,
+                                        "base_link", laserPointGlobal);
 
         for(auto & point : laserPointGlobal.points){
             size_t ratio = 100;
@@ -173,7 +173,7 @@ void roomba(BeegoController &b){
     Pose first_pose;
     ros::Rate loop_rate(10);
 
-    GridMap gMap(1000, 1000, tf_listener);
+    GridMap gMap(1500, 1500, tf_listener);
 
     // 0: running, 1: rotate
     size_t state = 0;
@@ -188,7 +188,7 @@ void roomba(BeegoController &b){
         ++count;
 
         auto elapsed = Time::now() - time_begin;
-        if(elapsed.toSec() >= 30){
+        if(elapsed.toSec() >= 60){
             break;
         }
 
@@ -197,7 +197,7 @@ void roomba(BeegoController &b){
         int i;
         switch(state){
             case 0:
-                b.control(2, 0);
+                b.control(0.7, 0);
                 b.getCurrentPose(pose);
                 b.getCurrentScan(scan);
 
@@ -207,14 +207,14 @@ void roomba(BeegoController &b){
                 }
 
                 i = -scan.angle_min / scan.angle_increment;
-                if(scan.ranges[i] < 0.7){
+                if(scan.ranges[i] < 0.9){
                     b.stop();
                     b.updateReferencePose(first_pose);
+                    assert(ros::Duration(1).sleep());
                     state = 1;
                 }
                 break;
             case 1:
-                assert(ros::Duration(1).sleep());
                 b.control(0, 1);
                 b.getCurrentPose(pose);
 
