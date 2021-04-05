@@ -24,26 +24,16 @@ include_directories(
   "/usr/include/eigen3"
 )
 
+file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp)
 file(GLOB_RECURSE PROJECT_HEADERS src/*.h)
 
 add_executable(time_sync
-  "src/time_sync.cpp"
-  "src/beego_controller.cpp"
+  ${PROJECT_SOURCES}
   ${PROJECT_HEADERS}
 )
 target_link_libraries(time_sync
   ${catkin_LIBRARIES}
 )
-
-add_executable(transform
-  "src/transform.cpp"
-  "src/beego_controller.cpp"
-  ${PROJECT_HEADERS}
-)
-target_link_libraries(transform
-  ${catkin_LIBRARIES}
-)
-
 
 #############
 ## Testing ##

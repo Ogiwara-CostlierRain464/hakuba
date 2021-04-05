@@ -75,17 +75,7 @@ struct GridMap{
 
 };
 
-struct DB{
-    map<ros::Time, sensor_msgs::LaserScan> lidarScan;
 
-    void greatest_less(const Time &time, LaserScan &out_scan){
-        auto it = lidarScan.lower_bound(time);
-        if(it != lidarScan.begin()){
-            out_scan = it->second;
-        }
-        out_scan = lidarScan.end()->second;
-    }
-};
 
 double getCurrentYawDiff(BeegoController &b, Pose &pose, Pose &first_pos){
     return b.normalize_angle(b.calcYaw(pose) - b.calcYaw(first_pos));
