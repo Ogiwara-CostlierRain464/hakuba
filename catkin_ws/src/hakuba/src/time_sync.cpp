@@ -11,6 +11,7 @@
 #include "beego_controller.h"
 #include "db.h"
 #include <ecl/threads.hpp>
+#include <ctime>
 
 using namespace std;
 using namespace ros;
@@ -241,11 +242,12 @@ void roomba(BeegoController &b){
     b.stop();
 }
 
+TimeSeriesTable<LaserScan> *scanTable;
+tf::TransformListener *tf_listener;
 
 void using_db(BeegoController &b){
     auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
     auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
-    tf::TransformListener tf_listener;
 
     Pose first_pose;
     ros::Rate loop_rate(10);
@@ -256,13 +258,12 @@ void using_db(BeegoController &b){
 
     Time time_begin = Time::now();
 
-    TimeSeriesTable<LaserScan> scanTable{};
-    IncrementalView map_view([&scanTable, &tf_listener](IncrementalView *view){
+    IncrementalView map_view([](IncrementalView *view) {
         ros::Time lastTime{};
-        ros::Duration(0.1).sleep();
+        ros::Duration(1).sleep();
         laser_geometry::LaserProjection projector;
         for(;;){
-            auto time = scanTable.getLatestTime();
+            auto time = scanTable->getLatestTime();
             if(time == lastTime){
                 ros::Duration(0.1).sleep();
                 continue;
@@ -270,18 +271,24 @@ void using_db(BeegoController &b){
                 // calculate coordinate at here and add to view
                 // you should calculate at here by yourself.
 
+
+                lastTime = time;
+
                 sensor_msgs::LaserScan scan;
-                scanTable.getLatest(scan);
+                scanTable->getLatest(scan);
 
                 PointCloud laserPointsRobot;
                 PointCloud laserPointGlobal;
 
+                std::string odom = "beego/odom";
+                std::string base_link = "beego/base_link";
+
                 projector.projectLaser(scan, laserPointsRobot);
-                laserPointsRobot.header.frame_id = "base_link";
-                tf_listener.transformPointCloud(
-                        "odom", laserPointsRobot.header.stamp,
+                laserPointsRobot.header.frame_id = base_link;
+                tf_listener->transformPointCloud(
+                        odom, laserPointsRobot.header.stamp,
                         laserPointsRobot,
-                        "base_link", laserPointGlobal);
+                        base_link, laserPointGlobal);
 
                 for(auto & point : laserPointGlobal.points){
                     view->insert(make_pair(point.x, point.y), 100);
@@ -297,13 +304,14 @@ void using_db(BeegoController &b){
         ++count;
 
         auto elapsed = Time::now() - time_begin;
-        if(elapsed.toSec() >= 60){
+        if(elapsed.toSec() >= 30){
             break;
         }
 
         bool should_stop = false;
         switch(state){
             case 0:
+                cout << "running" << endl;
                 b.control(0.7, 0);
                 b.getCurrentPose(pose);
                 b.getCurrentScan(scan);
@@ -311,7 +319,7 @@ void using_db(BeegoController &b){
                 if(count >= 20){
                     count = 0;
                     // add to DB
-                    scanTable.insertLatest(scan.header.stamp, scan);
+                    scanTable->insertLatest(scan.header.stamp, scan);
                 }
 
                 map_view.rangeQuery([&should_stop, &pose](IncrementalView::TableType &table){
@@ -320,8 +328,9 @@ void using_db(BeegoController &b){
                                 abs(pose.position.x - point.first.first) +
                                 abs(pose.position.y - point.first.second);
 
-                        if(distance < 1.3){
+                        if(distance < 1){
                             should_stop = true;
+                            cout << "stop" << endl;
                         }
                     }
                 });
@@ -330,10 +339,11 @@ void using_db(BeegoController &b){
                     b.stop();
                     b.updateReferencePose(first_pose);
                     assert(ros::Duration(1).sleep());
-                    state = 1;
+                    state = 2;
                 }
                 break;
             case 1:
+                cout << "rotate" << endl;
                 b.control(0, 1);
                 b.getCurrentPose(pose);
 
@@ -342,8 +352,21 @@ void using_db(BeegoController &b){
                     state = 0;
                 }
                 break;
+            case 2:
+                cout << "back" << endl;
+                b.control(-0.7, 0);
+                b.getCurrentPose(pose);
+
+                if(getCurrentDistDiff(b, pose, first_pose) > 0.4){
+                    b.stop();
+                    state = 1;
+                }
+                break;
 
         }
+
+        ros::spinOnce();   // ここでコールバックが呼ばれる
+        loop_rate.sleep();
     }
 
 }
@@ -355,7 +378,10 @@ int main(int argc, char **argv)
     BeegoController b;
     ros::Duration(1.0).sleep(); // 1.0秒待機
     ros::spinOnce(); // はじめにコールバック関数を呼んでおく
+    ros::Time::waitForValid();
 
+    scanTable = new TimeSeriesTable<LaserScan>{};
+    tf_listener = new tf::TransformListener(b.nh_);
     using_db(b);
 
     return 0;

@@ -44,7 +44,7 @@ target_link_libraries(time_sync
 ## Add gtest based cpp test target and link libraries
 catkin_add_gtest(${PROJECT_NAME}-test test/test_hakuba.cpp)
 if(TARGET ${PROJECT_NAME}-test)
-  target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}-test  ${catkin_LIBRARIES})
 endif()
 
 ## Add folders to be run by python nosetests

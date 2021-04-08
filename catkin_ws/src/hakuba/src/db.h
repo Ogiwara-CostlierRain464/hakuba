@@ -8,6 +8,7 @@
 #include <ecl/threads.hpp>
 #include <ecl/utilities.hpp>
 #include <ecl/utilities/function_objects.hpp>
+#include <utility>
 #include <immintrin.h>
 
 template <typename T>
@@ -15,10 +16,7 @@ class TimeSeriesTable{
 public:
     typedef std::map<ros::Time, T> TableType;
 
-    explicit TimeSeriesTable(const ros::Duration& max_storage_time =
-            ros::Duration().fromSec(10)):
-            maxStorageTime(max_storage_time)
-            {}
+    explicit TimeSeriesTable(){}
 
     ros::Time getLatestTime(){
         latestTimeMutex.lock();
@@ -45,7 +43,6 @@ public:
 
 private:
     ros::Time latestTime = ros::Time::now();
-    ros::Duration maxStorageTime;
 
     ecl::Mutex latestTimeMutex{};
     ecl::Mutex tableMutex{};
@@ -57,8 +54,8 @@ class IncrementalView{
 public:
     typedef std::map<std::pair<double, double>, int> TableType;
 
-    explicit IncrementalView(const std::function< void(IncrementalView*) > &query_)
-    : query(query_), queryThread(ecl::Thread(ecl::generateFunctionObject(&IncrementalView::onQueryThread, *this)))
+    explicit IncrementalView(std::function< void(IncrementalView*) > query_)
+    : query(std::move(query_)), queryThread(ecl::Thread(ecl::generateFunctionObject(&IncrementalView::onQueryThread, *this)))
     {}
 
     // special range query for GridMap
@@ -80,10 +77,11 @@ private:
     void onQueryThread(){
         auto ptr = this;
         assert(ptr != nullptr);
+
         query(ptr);
     }
 
-    const std::function<void (IncrementalView*)> &query;
+    const std::function<void (IncrementalView*)> query;
     ecl::Thread queryThread;
 
     TableType table;
