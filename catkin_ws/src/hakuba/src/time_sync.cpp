@@ -89,159 +89,6 @@ double getCurrentDistDiff(BeegoController &b,Pose &pose, Pose &first_pos){
                 pose.position.y - first_pos.position.y);
 }
 
-void map_check(BeegoController &b){
-    auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
-    auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
-    tf::TransformListener tf_listener;
-
-    Pose first_pos;
-    b.getCurrentPose(first_pos);
-    ros::Rate loop_rate(10);
-
-    GridMap gMap(1000, 1000, tf_listener);
-
-    bool running = true;
-    size_t state = 0;
-    size_t count = 0;
-
-    Time time_begin = Time::now();
-
-    while(ros::ok() && running){
-        LaserScan scan;
-        Pose pose;
-        nav_msgs::OccupancyGrid grid;
-
-        auto elapsed = Time::now() - time_begin;
-        if(elapsed.toSec() >= 30){
-            break;
-        }
-
-        switch(state){
-            case 0:
-                b.control(10, 0.3);
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
-//                gMap.addScan(pose, scan);
-                if(getCurrentDistDiff(b, pose, first_pos) > 1.5 + POS_TOLERANCE){
-                    b.stop();
-                    b.updateReferencePose(first_pos);
-                    state = 1;
-                }
-                break;
-            case 1:
-                assert(ros::Duration(1).sleep());
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
-                gMap.addScan(pose, scan, -1);
-                state = 2;
-                break;
-            case 2:
-                b.control(-10, -0.3);
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
-                count++;
-                if(count % 10 == 0){
-                    gMap.addScan(pose, scan);
-                }
-                if(getCurrentDistDiff(b,pose, first_pos) > 1.5 + POS_TOLERANCE){
-                    b.stop();
-                    b.updateReferencePose(first_pos);
-                    state = 3;
-                }
-                break;
-            case 3:
-                assert(ros::Duration(1).sleep());
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
-                gMap.addScan(pose, scan, -1);
-                gMap.buildMessage(grid);
-
-                map_pub.publish(grid);
-                map_meta_pub.publish(grid.info);
-                assert(ros::Duration(1).sleep());
-                running = false;
-                b.stop();
-                break;
-        }
-        ros::spinOnce();   // ここでコールバックが呼ばれる
-        loop_rate.sleep(); // 10.0[Hz]で動作するように待機
-    }
-}
-
-void roomba(BeegoController &b){
-    auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
-    auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
-    tf::TransformListener tf_listener;
-
-    Pose first_pose;
-    ros::Rate loop_rate(10);
-
-    GridMap gMap(1500, 1500, tf_listener);
-
-    // 0: running, 1: rotate
-    size_t state = 0;
-    size_t count = 0;
-
-    Time time_begin = Time::now();
-
-    while(ros::ok()){
-        LaserScan scan;
-        Pose pose;
-        nav_msgs::OccupancyGrid grid;
-        ++count;
-
-        auto elapsed = Time::now() - time_begin;
-        if(elapsed.toSec() >= 60){
-            break;
-        }
-
-        b.getCurrentScan(scan);
-
-        int i;
-        switch(state){
-            case 0:
-                b.control(0.7, 0);
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
-
-                if(count >= 20){
-                    count = 0;
-                    gMap.addScan(pose, scan);
-                }
-
-                i = -scan.angle_min / scan.angle_increment;
-                if(scan.ranges[i] < 0.9){
-                    b.stop();
-                    b.updateReferencePose(first_pose);
-                    assert(ros::Duration(1).sleep());
-                    state = 1;
-                }
-                break;
-            case 1:
-                b.control(0, 1);
-                b.getCurrentPose(pose);
-
-                if(getCurrentYawDiff(b, pose, first_pose) > (M_PI / 2)){
-                    b.stop();
-                    state = 0;
-                }
-                break;
-
-        }
-        ros::spinOnce();   // ここでコールバックが呼ばれる
-        loop_rate.sleep(); // 10.0[Hz]で動作するように待機
-    }
-
-    assert(ros::Duration(1).sleep());
-    OccupancyGrid  grid;
-    gMap.buildMessage(grid);
-
-    map_pub.publish(grid);
-    map_meta_pub.publish(grid.info);
-    assert(ros::Duration(1).sleep());
-    b.stop();
-}
-
 TimeSeriesTable<LaserScan> *scanTable;
 tf::TransformListener *tf_listener;
 
@@ -258,6 +105,7 @@ void using_db(BeegoController &b){
 
     Time time_begin = Time::now();
 
+    // create incremental view
     IncrementalView map_view([](IncrementalView *view) {
         ros::Time lastTime{};
         ros::Duration(1).sleep();
@@ -268,10 +116,6 @@ void using_db(BeegoController &b){
                 ros::Duration(0.1).sleep();
                 continue;
             }else{
-                // calculate coordinate at here and add to view
-                // you should calculate at here by yourself.
-
-
                 lastTime = time;
 
                 sensor_msgs::LaserScan scan;
@@ -322,6 +166,7 @@ void using_db(BeegoController &b){
                     scanTable->insertLatest(scan.header.stamp, scan);
                 }
 
+                // Check map by using rangeQuery
                 map_view.rangeQuery([&should_stop, &pose](IncrementalView::TableType &table){
                     for(auto & point : table){
                         double distance =

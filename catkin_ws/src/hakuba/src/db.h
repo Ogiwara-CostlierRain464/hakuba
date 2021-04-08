@@ -16,7 +16,7 @@ class TimeSeriesTable{
 public:
     typedef std::map<ros::Time, T> TableType;
 
-    explicit TimeSeriesTable(){}
+    explicit TimeSeriesTable()= default;
 
     ros::Time getLatestTime(){
         latestTimeMutex.lock();
@@ -86,48 +86,6 @@ private:
 
     TableType table;
     ecl::Mutex tableMutex;
-};
-
-struct DB{
-    // tf stores data by std::set (what a naive implementation...)
-    // which is implemented by Rb tree
-    // lookup runs for findClosest md::mutex suffixMutex{};ethod
-    // which uses iterator to find.
-    // each elements are sorted by time.
-    // How to make DB?
-    // How to make it generalized?
-    // anyway, at first, ...
-    // 1: pull up transform data from tf
-    // pulling up just requires tf listener!
-    // 2: store another type datum.
-    // at first, just use tf for transformation.
-    // key point is LaserScan data.
-    // how to save LaserScan? just embedding to memory?
-    // should I take care of logger already at this point?
-    // I'm still not sure how long should I save scan data,
-    // so just save for 10 second as same as tf does.
-    // Most important thing that should be save is...GridMap.
-    // Does GridMap should be Materialized View?
-    // when to calculate transformation of LaserScan?
-    // calculation of LaserScan can be a System transaction.
-    // so it can be running as different thread.
-    // try to run callback function differ from main thread not as usual.
-    // 1. data insert method should not be called from main thread.
-    // 2. GridMap update method should not be called from main thread or data inserting method
-    // 3. GridMap read method should be called from main thread.
-    // (a) callback thread: obtain LaserScan, and add to LaserScan table
-    // (b) update GridMap thread: check latest LaserScan. If latest time has changed, calculate absolute position of PointCloud and apply to GridMap
-    // (c) main thread: get map from GridMap and make decision.
-    // so at here, that key point is at least three different thread touches one DB.
-    // DB structure should be protected by nature.
-    // how to protect Db structure? Mutex? Silo?
-    // LaserScan table: inserted by (a), read by (b). Protect Linked list and latest_time by mutex.
-    // GridMap table: updated by (b), read by (c).
-    // Offer user to create table, create view.
-    // TimeSeriesTable: store data keyed by ros::Time, and has latest_update_time field.
-    // IncrementalView: created by callback function. IF: space scan? reading operation is implemented by user side.
-    // at here, you have to do range scan, not only one single point.
-    // for convenience, we provide this as a special view, a GridMapView
 };
 
 #endif //SRC_DB_H
