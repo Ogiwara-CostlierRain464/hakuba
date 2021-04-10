@@ -12,6 +12,7 @@
 #include <utility>
 #include <immintrin.h>
 
+
 template <typename T>
 class TimeSeriesTable{
 public:
@@ -46,6 +47,10 @@ public:
         range_query(table);
         tableMutex.unlock();
     }
+
+    // wanna provide elegant interface!
+    // to do that, template is not valid anymore.
+    //
 
 
 private:
@@ -116,38 +121,63 @@ private:
  *
  */
 
-void user(){
-    TimeSeriesTable<sensor_msgs::LaserScan> scanTable;
-    TimeSeriesTable<nav_msgs::Odometry> odomTable;
+namespace {
+    void user() {
+        TimeSeriesTable<sensor_msgs::LaserScan> scanTable;
+        TimeSeriesTable<nav_msgs::Odometry> odomTable;
 
-    sensor_msgs::LaserScan current_scan;
-    nav_msgs::Odometry current_odom;
+        sensor_msgs::LaserScan current_scan;
+        nav_msgs::Odometry current_odom;
 
-    bool scan_flag = false;
-    bool odom_flag = false;
+        bool scan_flag = false;
+        bool odom_flag = false;
 
-    scanTable.rangeQuery([&current_scan, &scan_flag](TimeSeriesTable<sensor_msgs::LaserScan>::TableType
-    &table){
-        for(auto & it : table){
-            if(it.second.ranges == current_scan.ranges){
-                scan_flag = true;
+        scanTable.rangeQuery([&current_scan, &scan_flag](TimeSeriesTable<sensor_msgs::LaserScan>::TableType
+                                                         &table) {
+            for (auto &it : table) {
+                if (it.second.ranges == current_scan.ranges) {
+                    scan_flag = true;
+                }
             }
-        }
-    });
-    odomTable.rangeQuery([&current_odom, &odom_flag](TimeSeriesTable<nav_msgs::Odometry>::TableType
-    &table){
-        for(auto & it : table){
-            if(it.second.pose == current_odom.pose){
-                odom_flag = true;
-            }
-        }
-    });
+        });
+        odomTable.rangeQuery([&current_odom, &odom_flag](TimeSeriesTable<nav_msgs::Odometry>::TableType
+                                                         &table) {
+            for (auto &it : table) {
+                if (it.second.pose == current_odom.pose) {
+                    odom_flag = true;
+                }
 
-    if(scan_flag and odom_flag){
-        // do something at here
+            }
+        });
+
+        // be sure that these data should be at SAME TIME!
+        // if you write like SQL...
+        // select time
+        // from scan, odom
+        // join query?
+        // data interpolation?
+        // find "near" times from DB
+        // and then, if you need, you can search from scan table
+        // .near(method=Euclid)
+        // where near from this point
+        // .near(x, y, theta, method=Euclid)
+        // save range data to scan table.
+
+
+        if (scan_flag and odom_flag) {
+            // do something at here
+        }
+
+        // much more elegant interface.
+        // select distance method: Euclid? Manhattan?
+        // save x,y, theta for pose
+        // Euclid distance for x and y, variance for theta
+        // what about LiDAR scan ???
+        // what "near" means in laser scan data?
+        // variance for each data point.
+        //
+
     }
-
-
 }
 
 #endif //SRC_DB_H

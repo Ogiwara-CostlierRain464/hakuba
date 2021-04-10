@@ -32,7 +32,7 @@ file(GLOB_RECURSE PROJECT_HEADERS src/*.h)
 add_executable(time_sync
   ${PROJECT_SOURCES}
   ${PROJECT_HEADERS}
-)
+        src/demo.h)
 target_link_libraries(time_sync
   ${catkin_LIBRARIES}
 )

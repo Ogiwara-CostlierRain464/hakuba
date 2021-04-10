@@ -10,6 +10,7 @@
 #include <random>
 #include "beego_controller.h"
 #include "db.h"
+#include "demo.h"
 #include <ecl/threads.hpp>
 #include <ctime>
 
