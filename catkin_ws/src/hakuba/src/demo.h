@@ -60,20 +60,21 @@ public:
 
         std::copy_if(table.begin(),
                      table.end(),
-                     out_map.begin(),
-                     [from, distance, theta_variance, func](decltype(table)::value_type const& kv_pair){
-            const Pose & it_pose = kv_pair.second;
-            double distance_ = 0;
-            if(func == Euclid){
-                distance_ = pow(it_pose.x - from.x, 2) + pow(it_pose.y - from.y, 2);
-            }else{
-                assert(func == Manhattan);
-                distance_ = abs(it_pose.x - from.x) + abs(it_pose.y - from.y);
-            }
+                     std::inserter(out_map, out_map.end()),
+                     [from, distance, theta_variance, func](
+                             decltype(table)::value_type const& kv_pair){
+                         const Pose & it_pose = kv_pair.second;
+                         double distance_ = 0;
+                         if(func == Euclid){
+                             distance_ = pow(it_pose.x - from.x, 2) + pow(it_pose.y - from.y, 2);
+                         }else{
+                             assert(func == Manhattan);
+                             distance_ = abs(it_pose.x - from.x) + abs(it_pose.y - from.y);
+                         }
 
-            bool check_theta = (from.theta - theta_variance) <= it_pose.theta && it_pose.theta <= (from.theta + theta_variance);
+                         bool check_theta = (from.theta - theta_variance) <= it_pose.theta && it_pose.theta <= (from.theta + theta_variance);
 
-            return (distance_ <= distance && check_theta);
+                         return (distance_ <= distance && check_theta);
         });
     }
 
