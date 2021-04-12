@@ -105,9 +105,13 @@ void demo(BeegoController &b){
         if(count == 200){
             // find last time that was close to current position.
             PoseTable::TableType map;
-            poseTable.findNear(current_pose,
-                               0.1, M_PI / 30, map);
+            poseTable.findNear(current_pose, // looking for near this pose
+                               0.1,  // within this distance
+                               M_PI / 30, // within is theta variance
+                               map); // search result
+
             for(auto & kv : map){
+                // printing which time was near to current pose
                 cout << kv.first.sec << endl;
             }
             b.stop();
