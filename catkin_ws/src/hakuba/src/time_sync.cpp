@@ -93,18 +93,12 @@ double getCurrentDistDiff(BeegoController &b,Pose &pose, Pose &first_pos){
 void demo(BeegoController &b){
     auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
     auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
-
     PoseTable poseTable;
-    ScanTable scanTable;
-
     ros::Rate loop_rate(10);
-
-    // after few seconds, find the coordinate which is near current coordinate.
 
     size_t count = 0;
     while(ros::ok()){
         Pose current_pose; b.getCurrentPose(current_pose);
-        LaserScan current_scan; b.getCurrentScan(current_scan);
         auto now = Time::now(); poseTable.insert(now, current_pose);
         count++;
 
@@ -115,14 +109,12 @@ void demo(BeegoController &b){
             PoseTable::TableType map;
             poseTable.findNear(current_pose,
                                0.1, M_PI / 30, map);
-
             for(auto & kv : map){
                 cout << kv.first.sec << endl;
             }
             b.stop();
             break;
         }
-
 
         ros::spinOnce();
         loop_rate.sleep();
