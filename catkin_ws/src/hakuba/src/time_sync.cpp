@@ -91,11 +91,9 @@ double getCurrentDistDiff(BeegoController &b,Pose &pose, Pose &first_pos){
 }
 
 void demo(BeegoController &b){
-    auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
-    auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
+
     PoseTable poseTable;
     ros::Rate loop_rate(10);
-
     size_t count = 0;
     while(ros::ok()){
         Pose current_pose; b.getCurrentPose(current_pose);
