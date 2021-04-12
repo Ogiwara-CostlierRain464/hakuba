@@ -103,18 +103,15 @@ void demo(BeegoController &b){
 
     size_t count = 0;
     while(ros::ok()){
-        Pose current_pose;
-        b.getCurrentPose(current_pose);
-        LaserScan current_scan;
-        b.getCurrentScan(current_scan);
-        auto now = Time::now();
-        poseTable.insert(now, current_pose);
+        Pose current_pose; b.getCurrentPose(current_pose);
+        LaserScan current_scan; b.getCurrentScan(current_scan);
+        auto now = Time::now(); poseTable.insert(now, current_pose);
         count++;
 
         b.control(1, 0.5);
 
         if(count == 200){
-            // find last time that was close to me.
+            // find last time that was close to current position.
             PoseTable::TableType map;
             poseTable.findNear(current_pose,
                                0.1, M_PI / 30, map);
