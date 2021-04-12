@@ -90,133 +90,47 @@ double getCurrentDistDiff(BeegoController &b,Pose &pose, Pose &first_pos){
                 pose.position.y - first_pos.position.y);
 }
 
-TimeSeriesTable<LaserScan> *scanTable;
-tf::TransformListener *tf_listener;
-
-void using_db(BeegoController &b){
+void demo(BeegoController &b){
     auto map_pub = b.nh_.advertise<nav_msgs::OccupancyGrid>("/map", 1, true);
     auto map_meta_pub = b.nh_.advertise<nav_msgs::MapMetaData>("/map_metadata", 1, true);
 
-    Pose first_pose;
+    PoseTable poseTable;
+    ScanTable scanTable;
+
     ros::Rate loop_rate(10);
 
-    // 0: running, 1: rotate
-    size_t state = 0;
+    // after few seconds, find the coordinate which is near current coordinate.
+
     size_t count = 0;
-
-    Time time_begin = Time::now();
-
-    // create incremental view
-    IncrementalView map_view([](IncrementalView *view) {
-        ros::Time lastTime{};
-        ros::Duration(1).sleep();
-        laser_geometry::LaserProjection projector;
-        for(;;){
-            auto time = scanTable->getLatestTime();
-            if(time == lastTime){
-                ros::Duration(0.1).sleep();
-                continue;
-            }else{
-                lastTime = time;
-
-                sensor_msgs::LaserScan scan;
-                scanTable->getLatest(scan);
-
-                PointCloud laserPointsRobot;
-                PointCloud laserPointGlobal;
-
-                std::string odom = "beego/odom";
-                std::string base_link = "beego/base_link";
-
-                projector.projectLaser(scan, laserPointsRobot);
-                laserPointsRobot.header.frame_id = base_link;
-                tf_listener->transformPointCloud(
-                        odom, laserPointsRobot.header.stamp,
-                        laserPointsRobot,
-                        base_link, laserPointGlobal);
-
-                for(auto & point : laserPointGlobal.points){
-                    view->insert(make_pair(point.x, point.y), 100);
-                }
-            }
-        }
-    });
-
     while(ros::ok()){
-        LaserScan scan;
-        Pose pose;
-        nav_msgs::OccupancyGrid grid;
-        ++count;
+        Pose current_pose;
+        b.getCurrentPose(current_pose);
+        LaserScan current_scan;
+        b.getCurrentScan(current_scan);
+        auto now = Time::now();
+        poseTable.insert(now, current_pose);
+        count++;
 
-        auto elapsed = Time::now() - time_begin;
-        if(elapsed.toSec() >= 30){
+        b.control(1, 0.5);
+
+        if(count == 200){
+            // find last time that was close to me.
+            PoseTable::TableType map;
+            poseTable.findNear(current_pose,
+                               0.1, M_PI / 30, map);
+
+            for(auto & kv : map){
+                cout << kv.first.sec << endl;
+            }
+            b.stop();
             break;
         }
 
-        bool should_stop = false;
-        switch(state){
-            case 0:
-                cout << "running" << endl;
-                b.control(0.7, 0);
-                b.getCurrentPose(pose);
-                b.getCurrentScan(scan);
 
-                if(count >= 20){
-                    count = 0;
-                    // add to DB
-                    scanTable->insertLatest(scan.header.stamp, scan);
-                }
-
-                // Check map by using rangeQuery
-                map_view.rangeQuery([&should_stop, &pose](IncrementalView::TableType &table){
-                    for(auto & point : table){
-                        double distance =
-                                abs(pose.position.x - point.first.first) +
-                                abs(pose.position.y - point.first.second);
-
-                        if(distance < 1){
-                            should_stop = true;
-                            cout << "stop" << endl;
-                        }
-                    }
-                });
-
-                if(should_stop){ // if there is something in front of robot.
-                    b.stop();
-                    b.updateReferencePose(first_pose);
-                    assert(ros::Duration(1).sleep());
-                    state = 2;
-                }
-                break;
-            case 1:
-                cout << "rotate" << endl;
-                b.control(0, 1);
-                b.getCurrentPose(pose);
-
-                if(getCurrentYawDiff(b, pose, first_pose) > (M_PI / 2)){
-                    b.stop();
-                    state = 0;
-                }
-                break;
-            case 2:
-                cout << "back" << endl;
-                b.control(-0.7, 0);
-                b.getCurrentPose(pose);
-
-                if(getCurrentDistDiff(b, pose, first_pose) > 0.4){
-                    b.stop();
-                    state = 1;
-                }
-                break;
-
-        }
-
-        ros::spinOnce();   // ここでコールバックが呼ばれる
+        ros::spinOnce();
         loop_rate.sleep();
     }
-
 }
-
 
 int main(int argc, char **argv)
 {
@@ -226,9 +140,7 @@ int main(int argc, char **argv)
     ros::spinOnce(); // はじめにコールバック関数を呼んでおく
     ros::Time::waitForValid();
 
-    scanTable = new TimeSeriesTable<LaserScan>{};
-    tf_listener = new tf::TransformListener(b.nh_);
-    using_db(b);
+    demo(b);
 
     return 0;
 }

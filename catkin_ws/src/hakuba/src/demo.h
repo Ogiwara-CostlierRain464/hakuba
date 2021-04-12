@@ -5,6 +5,7 @@
 #include <ros/duration.h>
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Pose.h>
 #include <functional>
 #include <ecl/threads.hpp>
 #include <ecl/utilities.hpp>
@@ -42,14 +43,30 @@ public:
 
     explicit PoseTable()= default;
 
-    void insert(ros::Time &at,const Pose &pose){
+    void insert(const ros::Time &at,const Pose &pose){
         table[at] = pose;
+    }
+
+    void insert(const ros::Time &at,const geometry_msgs::Pose &pose){
+        Pose my_pose;
+        Pose::fromROSPose(pose, my_pose);
+        table[at] = my_pose;
     }
 
     enum DistanceFunc{
         Euclid,
         Manhattan
     };
+
+    void findNear(const geometry_msgs::Pose &from,
+                  double distance, double theta_variance,
+                  TableType &out_map,
+                  DistanceFunc func = DistanceFunc::Euclid){
+        Pose my_pose;
+        Pose::fromROSPose(from, my_pose);
+        findNear(my_pose, distance, theta_variance,
+                 out_map, func);
+    }
 
     void findNear(const Pose &from,
                   double distance, double theta_variance,
