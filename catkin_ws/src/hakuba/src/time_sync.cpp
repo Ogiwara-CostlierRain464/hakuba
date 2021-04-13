@@ -51,7 +51,7 @@ struct GridMap{
 
     laser_geometry::LaserProjection projector;
 
-    void addScan(const Pose &pose,
+    void addScan(const ::Pose &pose,
                  const LaserScan &scan,
                  int occupy = 100){
         PointCloud laserPointsRobot;
@@ -81,11 +81,11 @@ struct GridMap{
 
 
 
-double getCurrentYawDiff(BeegoController &b, Pose &pose, Pose &first_pos){
+double getCurrentYawDiff(BeegoController &b, geometry_msgs::Pose &pose, geometry_msgs::Pose &first_pos){
     return b.normalize_angle(b.calcYaw(pose) - b.calcYaw(first_pos));
 }
 
-double getCurrentDistDiff(BeegoController &b,Pose &pose, Pose &first_pos){
+double getCurrentDistDiff(BeegoController &b,geometry_msgs::Pose &pose, geometry_msgs::Pose &first_pos){
     return hypot(pose.position.x - first_pos.position.x,
                 pose.position.y - first_pos.position.y);
 }
@@ -96,7 +96,7 @@ void demo(BeegoController &b){
     ros::Rate loop_rate(10);
     size_t count = 0;
     while(ros::ok()){
-        Pose current_pose; b.getCurrentPose(current_pose);
+        geometry_msgs::Pose current_pose; b.getCurrentPose(current_pose);
         auto now = Time::now(); poseTable.insert(now, current_pose);
         count++;
 
@@ -130,6 +130,12 @@ int main(int argc, char **argv)
     ros::Duration(1.0).sleep(); // 1.0秒待機
     ros::spinOnce(); // はじめにコールバック関数を呼んでおく
     ros::Time::waitForValid();
+
+    // so you have to impl "search rand mark list by odometry.
+    // one pose, multiple rand mark list.
+    // wanna get all result that match to this pose
+    // provide variety of query... search by and/or operation,
+    // and sort by some special key
 
     demo(b);
 
