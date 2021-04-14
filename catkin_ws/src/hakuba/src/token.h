@@ -22,6 +22,14 @@ struct Token{
         if(t == Type::Div or t == Type::Mul) precedence = 2;
         if(t == Type::Add or t == Type::Sub) precedence = 1;
     }
+
+    bool isOperator(){
+        return (type != Type::Number
+            and type != Tupe::RightPar
+            and type != Type::LeftPar
+            and type != Type::Empty
+        );
+    }
 };
 
 #endif
