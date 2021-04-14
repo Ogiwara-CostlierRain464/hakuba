@@ -16,8 +16,22 @@ public:
 
     }
 
+    std::vector<Token> getTokens(){
+        return tokens;
+    }
+
+private:
+    std::istringstream stream;
     std::vector<Token> tokens;
 
+    std::string getNumber(){
+
+    }
+
+
+    bool validOperator(){
+
+    }
 }
 
 #endif
