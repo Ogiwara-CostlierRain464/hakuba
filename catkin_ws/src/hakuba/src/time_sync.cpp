@@ -13,6 +13,7 @@
 #include "demo.h"
 #include <ecl/threads.hpp>
 #include <ctime>
+#include "calculator.h"
 
 
 using namespace std;
@@ -138,7 +139,11 @@ int main(int argc, char **argv)
     // provide variety of query... search by and/or operation,
     // and sort by some special key
 
+    calculate("1 + 2 * 3");
+
     demo(b);
+
+
 
     return 0;
 }

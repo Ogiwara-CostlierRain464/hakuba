@@ -8,7 +8,7 @@
 
 class Lexer {
 public:
-    Lexer(std::string const &str)
+    explicit Lexer(std::string const &str)
     : stream(str)
     {}
 
@@ -16,7 +16,7 @@ public:
         char c = stream.peek();
         while(stream.good()){
             if(isdigit(c) or c == '.'){
-                tokens.push_back(Token(Type::NUmber, getNumber()));
+                tokens.emplace_back(Type::Number, getNumber());
             }else{
                 stream.get(c);
                 if(isspace(c)){
@@ -24,10 +24,10 @@ public:
                 }else if(validOperator(c)){
                     tokens.push_back(Token(static_cast<Type>(c), {c}));
                 }else{
-
+                    exit(-1);
                 }
-
             }
+            c = stream.peek();
         }
     }
 
@@ -48,7 +48,7 @@ private:
             if(c != '.' and !isdigit(c)) break;
             c = stream.get();
             if(c == '.'){
-                if(deciaml)
+                if(decimal)
                     exit(-1);
                 else decimal = true;
             }
@@ -58,11 +58,11 @@ private:
     }
 
 
-    bool validOperator(char c){
+    static bool validOperator(char c){
         std::string operators = "+-*/()";
-        for(chat i : operators) if(i==c) return true;
+        for(char i : operators) if(i==c) return true;
         return false;
     }
-}
+};
 
 #endif
