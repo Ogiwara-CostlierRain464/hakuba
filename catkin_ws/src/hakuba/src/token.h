@@ -15,7 +15,13 @@ enum class Type: char{
 };
 
 struct Token{
-    Type
+    Type type;
+    std::string value;
+    int precedence;
+    Token(Type t, std::stirng v): type(t), value(v), precedence(0){
+        if(t == Type::Div or t == Type::Mul) precedence = 2;
+        if(t == Type::Add or t == Type::Sub) precedence = 1;
+    }
 };
 
 #endif
