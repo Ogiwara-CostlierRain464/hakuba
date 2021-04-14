@@ -80,6 +80,7 @@ public:
         // .sortBy("distance") // here comes for key like x,y,theta, or
         // some special keyword like "distance"(Euclid distance)
         // return as copied result.
+        //
     }
 
 private:
