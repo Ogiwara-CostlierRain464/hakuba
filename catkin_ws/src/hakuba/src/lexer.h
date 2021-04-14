@@ -1,18 +1,23 @@
 #ifndef SRC_LEXER_H
 #define SRC_LEXER_H
+
 #include <sstream>
 #include <string>
 #include <vector>
+#include "token.h"
 
-class Lexer{
+class Lexer {
 public:
-    Lexer(std::string const &str){
+    Lexer(std::string const &str) {
 
     }
 
-private:
-    std::istringstream stream;
+    void tokenize() {
 
-};
+    }
 
-#endif //SRC_LEXER_H
+    std::vector<Token> tokens;
+
+}
+
+#endif

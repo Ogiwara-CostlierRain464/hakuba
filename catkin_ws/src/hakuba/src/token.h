@@ -13,3 +13,9 @@ enum class Type: char{
     RightPar = ')',
     Empty = 'e'
 };
+
+struct Token{
+    Type
+};
+
+#endif
