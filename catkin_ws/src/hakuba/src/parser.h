@@ -11,7 +11,7 @@ public:
     Parser(std::vector<Token> const &v): tokens(v){}
     std::vector<Token> getPostfix(){
         if(!validSyntax()){
-            exit(-1);
+            assert(false && "Invalid syntax");
         }
 
         std::vector<Token> rv;

@@ -10,7 +10,7 @@ class AST{
 public:
     AST(): token(Token(Type::Empty, "")), value(0), left(nullptr), right(nullptr){}
     AST(Token t): token(t), value(0), left(nullptr), right(nullptr){}
-    void print(){ printAST(std::shared_ptr<AST>(this));  std::cout << std::endl; }
+    void print(){ printAST();  std::cout << std::endl; }
     void build(std::vector<Token> postfix){
         std::shared_ptr<AST> n = buildAST(postfix);
         this->token = n->token;
@@ -18,7 +18,7 @@ public:
         this->left = n->left;
     }
 
-    int evaluate(){
+    double evaluate(){
         if(token.type == Type::Number) return toNumber(token.value);
         if(token.type == Type::Empty) return 0;
         switch (token.type) {
@@ -51,17 +51,17 @@ private:
         }
     }
 
-    void printAST(std::shared_ptr<AST> n){
-        if(n->left != nullptr and n->right != nullptr) std::cout << "(";
-        if(n->left != nullptr) printAST(n->left);
-        std::cout << n->token.value;
-        if(n->right != nullptr) printAST(n->right);
-        if(n->left != nullptr and n->right != nullptr) std::cout << ")";
+    void printAST(){
+        if(left != nullptr and right != nullptr) std::cout << "(";
+        if(left != nullptr) left->printAST();
+        std::cout << token.value << " ";
+        if(right != nullptr) right->printAST();
+        if(left != nullptr and right != nullptr) std::cout << ")";
     }
 
-    int toNumber(std::string str){
+    double toNumber(std::string str){
         std::stringstream ss(str);
-        int rv; ss >> rv;
+        double rv; ss >> rv;
         if(ss.fail()){
             exit(-1);
         }

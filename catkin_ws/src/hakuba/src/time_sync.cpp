@@ -13,7 +13,7 @@
 #include "demo.h"
 #include <ecl/threads.hpp>
 #include <ctime>
-#include "calculator.h"
+#include "sql.h"
 
 
 using namespace std;
@@ -139,7 +139,15 @@ int main(int argc, char **argv)
     // provide variety of query... search by and/or operation,
     // and sort by some special key
 
-    cout << calculate("6 / 2 * (1 + 2)") << endl;
+    LandmarkTable table;
+    table.insert(::Pose(1, 0, 0), { RandMark(1) });
+    table.insert(::Pose(9, 2.4, 15), { RandMark(2) });
+    table.insert(::Pose(9, 0, 100), { RandMark(3) });
+
+    std::map<::Pose, std::vector<RandMark>> result = table
+    .select("(0 < x & x < 9) | ((1 < y & y < 2.5) & ( 0 < theta & theta < 30 ))");
+
+    assert(result.size() == 2);
 
     return 0;
 }

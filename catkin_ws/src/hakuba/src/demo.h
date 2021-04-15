@@ -14,9 +14,13 @@
 #include <immintrin.h>
 #include <vector>
 #include "calculator.h"
+#include "sql.h"
 
 struct RandMark{
-    size_t id;
+    size_t id{};
+
+    RandMark()= default;
+    explicit RandMark(size_t id_): id(id_){}
 };
 
 
@@ -48,44 +52,54 @@ struct Pose{
     }
 };
 
+class SearchResult{
+    void orderBy(const std::string &str){
+        // `str` comes for..
+        // normal key like x, y, theta
+        // or special key like distance
+        // It's impl should be just so easy and naive.
+
+    }
+};
+
 
 class LandmarkTable{
 public:
     typedef std::map<::Pose, std::vector<RandMark>> TableType;
 
-    void findNear(const Pose &from,
-                  double distance,
-                  double theta_variance,
-                  TableType &out_map){
-        assert(distance > 0);
-        assert(theta_variance > 0);
+    void insert(const TableType::key_type &pose,
+                const TableType::mapped_type &vec){
+        table[pose] = vec;
+    }
 
+    TableType select(std::string const &str){
+        TableType out_map;
         std::copy_if(table.begin(),
                      table.end(),
                      std::inserter(out_map, out_map.end()),
-                     [from, distance, theta_variance](
+                     [&str](
                              decltype(table)::value_type const& kv_pair){
 
                          const Pose & it_pose = kv_pair.first;
-                         double distance_;
-                         distance_ = pow(it_pose.x - from.x, 2) + pow(it_pose.y - from.y, 2);
+//                         double distance_;
+//                         distance_ = pow(it_pose.x - from.x, 2) + pow(it_pose.y - from.y, 2);
+//
+//                         bool check_theta = (from.theta - theta_variance) <= it_pose.theta && it_pose.theta <= (from.theta + theta_variance);
+//
+//                         return (distance_ <= distance && check_theta);
+//
+                        std::string query = str;
+                        sql::replaceAll(query, "x", std::to_string(it_pose.x));
+                        sql::replaceAll(query, "y", std::to_string(it_pose.y));
+                        sql::replaceAll(query, "theta", std::to_string(it_pose.theta));
 
-                         bool check_theta = (from.theta - theta_variance) <= it_pose.theta && it_pose.theta <= (from.theta + theta_variance);
-
-                         return (distance_ <= distance && check_theta);
+                        return sql::exec(query);
                      });
 
-        // query to 'find near' must be much elegant.
-        // and also sort should be done by query
-        // how query works? by string or by method chain?
-        // like...
-        // table
-        // .find("10 < x and x < 30 and 20 < y and y < 40")
-        // .sortBy("distance") // here comes for key like x,y,theta, or
-        // some special keyword like "distance"(Euclid distance)
-        // return as copied result.
-        //
+        return out_map;
     }
+
+
 
 private:
     TableType table;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <ecl/threads.hpp>
 #include <functional>
+#include "../src/sql.h"
 
 using namespace std;
 
@@ -38,6 +39,10 @@ TEST_F(Unit, thread){
     });
 
     sleep(1);
+}
+
+TEST_F(Unit, sql){
+    cout << sql::exec("2 < 2.9");
 }
 
 int main(int argc, char **argv){
