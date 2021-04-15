@@ -13,7 +13,7 @@
 #include <utility>
 #include <immintrin.h>
 #include <vector>
-
+#include "calculator.h"
 
 struct RandMark{
     size_t id;
@@ -41,6 +41,10 @@ struct Pose{
         double roll, pitch, yaw;
         tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
         out.theta = yaw;
+    }
+
+    bool operator<(const Pose &rhs) const{
+        return x < rhs.x;
     }
 };
 
@@ -180,5 +184,4 @@ namespace {
     }
 }
 
-
-#endif //SRC_DEMO_H
+#endif

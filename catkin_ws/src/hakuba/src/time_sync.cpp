@@ -139,11 +139,7 @@ int main(int argc, char **argv)
     // provide variety of query... search by and/or operation,
     // and sort by some special key
 
-    calculate("1 + 2 * 3");
-
-    demo(b);
-
-
+    cout << calculate("6 / 2 * (1 + 2)") << endl;
 
     return 0;
 }

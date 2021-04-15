@@ -24,7 +24,7 @@ public:
                 }else if(validOperator(c)){
                     tokens.push_back(Token(static_cast<Type>(c), {c}));
                 }else{
-                    exit(-1);
+                    assert(false && "Invalid character");
                 }
             }
             c = stream.peek();
@@ -49,7 +49,7 @@ private:
             c = stream.get();
             if(c == '.'){
                 if(decimal)
-                    exit(-1);
+                    assert(false && "Multiple dots on number");
                 else decimal = true;
             }
             rv += c;
