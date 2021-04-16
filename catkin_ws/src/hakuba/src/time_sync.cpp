@@ -144,10 +144,11 @@ int main(int argc, char **argv)
     table.insert(::Pose(9, 2.4, 15), { RandMark(2) });
     table.insert(::Pose(9, 0, 100), { RandMark(3) });
 
-    std::map<::Pose, std::vector<RandMark>> result = table
-    .select("(0 < x & x < 9) | ((1 < y & y < 2.5) & ( 0 < theta & theta < 30 ))");
+    auto result = table
+        .select("(0 < x & x < 9) | ((1 < y & y < 2.5) & ( 0 < theta & theta < 30 ))")
+        .orderBy("x");
 
-    assert(result.size() == 2);
+    assert(result.result.size() == 2);
 
     return 0;
 }

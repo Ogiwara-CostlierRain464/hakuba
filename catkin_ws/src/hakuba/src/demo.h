@@ -52,13 +52,36 @@ struct Pose{
     }
 };
 
-class SearchResult{
-    void orderBy(const std::string &str){
+struct SearchResult{
+    typedef std::pair<::Pose, std::vector<RandMark>> ResultType;
+    std::vector<ResultType> result;
+
+    SearchResult& orderBy(const std::string &str){
         // `str` comes for..
         // normal key like x, y, theta
         // or special key like distance
         // It's impl should be just so easy and naive.
+        std::sort(result.begin(), result.end(), [str](
+                const ResultType &a, const ResultType &b
+                ) -> bool{
+            if(str == "x"){
+                return a.first.x > b.first.x;
+            }else if(str == "y") {
+                return a.first.y > b.first.y;
+            }else if(str == "theta"){
+                return a.first.theta > b.first.theta;
+            }else{
+                assert(false && "Invalid orderBy key");
+            }
+        });
 
+        return *this;
+    }
+
+    static void from(const std::map<::Pose, std::vector<RandMark>> &map, SearchResult &out){
+        for(const auto &kv : map){
+            out.result.emplace_back(kv);
+        }
     }
 };
 
@@ -72,7 +95,7 @@ public:
         table[pose] = vec;
     }
 
-    TableType select(std::string const &str){
+    SearchResult select(std::string const &str){
         TableType out_map;
         std::copy_if(table.begin(),
                      table.end(),
@@ -81,13 +104,6 @@ public:
                              decltype(table)::value_type const& kv_pair){
 
                          const Pose & it_pose = kv_pair.first;
-//                         double distance_;
-//                         distance_ = pow(it_pose.x - from.x, 2) + pow(it_pose.y - from.y, 2);
-//
-//                         bool check_theta = (from.theta - theta_variance) <= it_pose.theta && it_pose.theta <= (from.theta + theta_variance);
-//
-//                         return (distance_ <= distance && check_theta);
-//
                         std::string query = str;
                         sql::replaceAll(query, "x", std::to_string(it_pose.x));
                         sql::replaceAll(query, "y", std::to_string(it_pose.y));
@@ -96,7 +112,10 @@ public:
                         return sql::exec(query);
                      });
 
-        return out_map;
+        SearchResult out_result;
+        SearchResult::from(out_map, out_result);
+
+        return out_result;
     }
 
 
