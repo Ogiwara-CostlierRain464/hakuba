@@ -19,8 +19,11 @@
 struct RandMark{
     size_t id{};
 
+    std::vector<geometry_msgs::Point32> points;
+
     RandMark()= default;
-    explicit RandMark(size_t id_): id(id_){}
+    explicit RandMark(size_t id)
+    : id(id){}
 };
 
 

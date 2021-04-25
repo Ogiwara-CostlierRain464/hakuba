@@ -14,7 +14,7 @@
 #include <ecl/threads.hpp>
 #include <ctime>
 #include "sql.h"
-
+#include "mapload.h"
 
 using namespace std;
 using namespace ros;
@@ -140,15 +140,36 @@ int main(int argc, char **argv)
     // and sort by some special key
 
     LandmarkTable table;
-    table.insert(::Pose(1, 0, 0), { RandMark(1) });
-    table.insert(::Pose(9, 2.4, 15), { RandMark(2) });
-    table.insert(::Pose(9, 0, 100), { RandMark(3) });
+
+//    table.insert(::Pose(1, 0, 0), { RandMark(1) });
+//    table.insert(::Pose(9, 2.4, 15), { RandMark(2) });
+//    table.insert(::Pose(9, 0, 100), { RandMark(3) });
+
+    getMap("landmarksmap.txt");
+    for(const auto &field: map_){
+        ::Pose pose(field.robot_pos.x,
+                    field.robot_pos.y,
+                    field.robot_pos.z);
+
+        std::vector<RandMark> rand_marks{};
+        for(const auto &kv: field.landmarks){
+            RandMark randMark(kv.first);
+            randMark.points = kv.second;
+
+            rand_marks.push_back(randMark);
+        }
+
+        table.insert(pose, rand_marks);
+    }
+    // load data from table.
+    //
 
     auto result = table
         .select("(0 < x & x < 9) | ((1 < y & y < 2.5) & ( 0 < theta & theta < 30 ))")
         .orderBy("x");
 
-    assert(result.result.size() == 2);
+    cout << result.result.size();
+//    assert(result.result.size() == 2);
 
     return 0;
 }

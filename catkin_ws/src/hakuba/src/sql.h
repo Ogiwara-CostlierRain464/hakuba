@@ -45,7 +45,7 @@ namespace sql{
         void tokenize() {
             char c = stream.peek();
             while(stream.good()){
-                if(isdigit(c) or c == '.'){
+                if(isdigit(c) or c == '.' or c == '-'){
                     tokens.emplace_back(Type::Number, getNumber());
                 }else{
                     stream.get(c);
@@ -75,7 +75,7 @@ namespace sql{
             char c;
             while(stream.good()){
                 c = stream.peek();
-                if(c != '.' and !isdigit(c)) break;
+                if(c != '.' and c != '-' and !isdigit(c)) break;
                 c = stream.get();
                 if(c == '.'){
                     if(decimal)
