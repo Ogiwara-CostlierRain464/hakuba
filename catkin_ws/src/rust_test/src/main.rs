@@ -1,6 +1,5 @@
 use std::rc::Rc;
 use by_address::ByAddress;
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 
 const ORDER: usize = 4;
@@ -27,8 +26,10 @@ fn find_leaf(root: Option<NodeType>, key: isize) -> Option<NodeType>{
     while !c.as_ref().borrow_mut().is_leaf {
         let mut i = 0;
         while i < c.as_ref().borrow_mut().num_keys {
-            
+            if key >= c.as_ref().borrow_mut().keys[i] {  i+=1; }
+            else { break; }
         }
+        c = c.clone().as_ref().borrow_mut().pointers[i].clone().unwrap();
     }
     
     return Some(c);
@@ -77,7 +78,7 @@ fn make_leaf() -> NodeType{
 }
 
 // Helper function used in insert_into_parent
-fn get_left_index(mut parent: NodeType, left: NodeType) -> usize{
+fn get_left_index(parent: NodeType, left: NodeType) -> usize{
     let mut left_index: usize = 0;
     while left_index <= parent.as_ref().borrow_mut().num_keys{
         match &parent.as_ref().borrow_mut().pointers[left_index] {
@@ -91,7 +92,7 @@ fn get_left_index(mut parent: NodeType, left: NodeType) -> usize{
     left_index
 }
 
-fn insert_into_leaf(mut leaf: NodeType, key: isize, ptr_record: NodeType) -> NodeType{
+fn insert_into_leaf(leaf: NodeType, key: isize, ptr_record: NodeType) -> NodeType{
     let mut insertion_point: usize = 0;
 
     while insertion_point < leaf.as_ref().borrow_mut().num_keys
@@ -111,8 +112,24 @@ fn insert_into_leaf(mut leaf: NodeType, key: isize, ptr_record: NodeType) -> Nod
     leaf
 }
 
+fn insert_into_node(root: NodeType, n: NodeType,
+                    left_index: usize, key: isize, right: NodeType)
+-> NodeType{
+    let mut i: usize = n.as_ref().borrow_mut().num_keys;
 
-fn insert_into_node_after_splitting(root: NodeType, mut old_node: NodeType,
+    loop{
+        if !(i > left_index){ break; }
+        n.as_ref().borrow_mut().pointers[i+1] = n.as_ref().borrow_mut().pointers[i].clone();
+        n.as_ref().borrow_mut().keys[i] = n.as_ref().borrow_mut().keys[i - 1];
+        i-=1;
+    }
+    n.as_ref().borrow_mut().pointers[left_index + 1] = Some(right);
+    n.as_ref().borrow_mut().keys[left_index] = key;
+    n.as_ref().borrow_mut().num_keys += 1;
+    return root;
+}
+
+fn insert_into_node_after_splitting(root: NodeType, old_node: NodeType,
                                     left_index: usize, key: isize,
                                     right: NodeType) -> NodeType{
     let mut tmp_pointers: [Option<NodeType>; ORDER+1] = Default::default();
@@ -140,7 +157,7 @@ fn insert_into_node_after_splitting(root: NodeType, mut old_node: NodeType,
     tmp_keys[left_index] = key;
 
     let split = cut(ORDER);
-    let mut new_node = make_node();
+    let new_node = make_node();
     old_node.as_ref().borrow_mut().num_keys = 0;
 
     i = 0;
@@ -184,12 +201,47 @@ fn insert_into_node_after_splitting(root: NodeType, mut old_node: NodeType,
 
 fn insert_into_parent(root: NodeType, left: NodeType,
                       key: isize, right: NodeType) -> NodeType{
-    todo!()
+    let left_index: usize;
+    let parent;
+
+    parent = left.as_ref().borrow_mut().parent.clone();
+
+    if parent.is_none(){
+        return insert_into_new_root(left, key, right);
+    }
+    assert!(parent.is_some());
+
+    // Find the parent's pointer to the left node
+    left_index = get_left_index(parent.clone().unwrap(), left);
+
+    if parent.as_ref().unwrap()
+        .as_ref()
+        .borrow_mut().num_keys < ORDER - 1{
+        return insert_into_node(root, parent.unwrap(), left_index, key, right);
+    }
+
+    return insert_into_node_after_splitting(root, parent.unwrap(), left_index, key, right);
+}
+
+fn insert_into_new_root(left: NodeType, key: isize, right: NodeType)
+    -> NodeType{
+    let root = make_node();
+    root.as_ref().borrow_mut().keys[0] = key;
+    root.as_ref().borrow_mut().pointers[0] = Some(left.clone());
+    root.as_ref().borrow_mut().pointers[1] = Some(right.clone());
+    root.as_ref().borrow_mut().num_keys += 1;
+    root.as_ref().borrow_mut().parent = None;
+    left.as_ref().borrow_mut().parent = Some(root.clone());
+    right.as_ref().borrow_mut().parent = Some(root.clone());
+
+    return root;
 }
 
 fn insert_into_leaf_after_splitting(root: NodeType, leaf: NodeType,
-                                    key: isize, ptr_record: NodeType) -> NodeType{
- todo!("w")
+                                    key: isize, ptr_record: NodeType)
+-> NodeType{
+    let new_leaf = make_leaf();
+
 }
 
 

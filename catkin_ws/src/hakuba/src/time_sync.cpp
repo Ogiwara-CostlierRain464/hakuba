@@ -146,6 +146,7 @@ int main(int argc, char **argv)
 //    table.insert(::Pose(9, 2.4, 15), { RandMark(2) });
 //    table.insert(::Pose(9, 0, 100), { RandMark(3) });
 
+    //save landmark data
     getMap("landmarksmap.txt");
     for(const auto &field: map_){
         ::Pose pose(field.robot_pos.x,
