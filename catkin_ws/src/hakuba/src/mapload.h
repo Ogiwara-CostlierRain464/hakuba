@@ -93,9 +93,7 @@ bool getMap(const std::string& filename)
             field.landmarks.clear();
         }
     }
-    ROS_INFO("Get Map");
-    // 地図上の現在位置を取得
-    // initializeMapIndex();
+
     return true;
 }
 

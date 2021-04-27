@@ -13,6 +13,7 @@
 #include "demo.h"
 #include <ecl/threads.hpp>
 #include <ctime>
+#include <unistd.h>
 #include "sql.h"
 #include "mapload.h"
 
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
     for(const auto &field: map_){
         ::Pose pose(field.robot_pos.x,
                     field.robot_pos.y,
-                    field.robot_pos.z);
+                    field.robot_pos.z); // theta or z, whatever.
 
         std::vector<RandMark> rand_marks{};
         for(const auto &kv: field.landmarks){
@@ -161,14 +162,28 @@ int main(int argc, char **argv)
 
         table.insert(pose, rand_marks);
     }
-    // load data from table.
-    //
 
-    auto result = table
-        .select("(0 < x & x < 9) | ((1 < y & y < 2.5) & ( 0 < theta & theta < 30 ))")
-        .orderBy("x");
+    ecl::Thread t1([&table](){
+        auto start = ros::Time::now();
+        auto result = table
+                .select("(0 < x & x < 9) | ((1 < y & y < 2.5) & ( 0 < theta & theta < 30 ))")
+                .orderBy("x");
+        auto end = ros::Time::now();
+        cout << "T1: " << (end - start).toSec() << endl;
+    });
 
-    cout << result.result.size();
+    ecl::Thread t2([&table](){
+        auto start = ros::Time::now();
+        auto result = table
+                .select("10 < x")
+                .orderBy("x");
+        auto end = ros::Time::now();
+        cout << "T2: " << (end - start).toSec() << endl;
+    });
+
+    t1.join();
+    t2.join();
+
 //    assert(result.result.size() == 2);
 
     return 0;
