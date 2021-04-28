@@ -10,7 +10,8 @@ struct Node{
     parent: Option<NodeType>,
     is_leaf: bool,
     is_record: bool,
-    num_keys: usize
+    value: i128,
+    num_keys: usize,
 }
 
 type NodeType = Rc<RefCell<Node>>;
@@ -23,16 +24,36 @@ fn find_leaf(root: Option<NodeType>, key: isize) -> Option<NodeType>{
     }
     assert!(root.is_some());
     let mut c = root.unwrap();
-    while !c.as_ref().borrow_mut().is_leaf {
+    while !c.as_ref().borrow().is_leaf {
         let mut i = 0;
-        while i < c.as_ref().borrow_mut().num_keys {
-            if key >= c.as_ref().borrow_mut().keys[i] {  i+=1; }
+        while i < c.as_ref().borrow().num_keys {
+            if key >= c.as_ref().borrow().keys[i] {  i+=1; }
             else { break; }
         }
-        c = c.clone().as_ref().borrow_mut().pointers[i].clone().unwrap();
+        c = c.clone().as_ref().borrow().pointers[i].clone().unwrap();
     }
     
     return Some(c);
+}
+
+fn find(root: Option<NodeType>, key: isize) -> Option<NodeType>{
+    if root.is_none(){
+        return None;
+    }
+
+    let leaf = find_leaf(root, key);
+    let mut i = 0;
+    assert!(leaf.is_some());
+    while i < leaf.as_ref().unwrap().as_ref().borrow_mut().num_keys {
+        if leaf.as_ref().unwrap().as_ref().borrow_mut().keys[i] == key{ break; }
+        i+=1;
+    }
+
+    return if i == leaf.as_ref().unwrap().as_ref().borrow_mut().num_keys {
+        None
+    } else {
+        leaf.unwrap().as_ref().borrow_mut().pointers[i].clone()
+    }
 }
 
 fn cut(len: usize) -> usize{
@@ -44,13 +65,14 @@ fn cut(len: usize) -> usize{
 }
 
 
-fn make_record() -> NodeType{
+fn make_record(value: i128) -> NodeType{
     let record = Node{
         pointers: Default::default(),
         keys: Default::default(),
         parent: None,
         is_leaf: false,
         is_record: true,
+        value,
         num_keys: 0
     };
 
@@ -65,6 +87,7 @@ fn make_node() -> NodeType{
         parent: None,
         is_leaf: false,
         is_record: false,
+        value: 0,
         num_keys: 0
     };
 
@@ -80,36 +103,37 @@ fn make_leaf() -> NodeType{
 // Helper function used in insert_into_parent
 fn get_left_index(parent: NodeType, left: NodeType) -> usize{
     let mut left_index: usize = 0;
-    while left_index <= parent.as_ref().borrow_mut().num_keys{
-        match &parent.as_ref().borrow_mut().pointers[left_index] {
-            Some(x) => if  ByAddress(x) != ByAddress(&left) {
-                   left_index += 1;
-            },
-            _ => {}
-        }
+    while left_index <= parent.as_ref().borrow().num_keys
+        && ByAddress(parent.as_ref().borrow().pointers[left_index].as_ref().unwrap().as_ref().borrow())
+        != ByAddress(left.as_ref().borrow()){
+        left_index += 1;
     }
+
 
     left_index
 }
 
 fn insert_into_leaf(leaf: NodeType, key: isize, ptr_record: NodeType) -> NodeType{
+    let mut leaf_ref = leaf.as_ref().borrow_mut();
     let mut insertion_point: usize = 0;
 
-    while insertion_point < leaf.as_ref().borrow_mut().num_keys
-        && leaf.as_ref().borrow_mut().keys[insertion_point] < key {
+    while insertion_point < leaf_ref.num_keys
+        && leaf_ref.keys[insertion_point] < key {
         insertion_point += 1;
     }
 
-    // move right from insertion point.
-    for i in (insertion_point+1..leaf.as_ref().borrow_mut().num_keys).rev(){
-        leaf.as_ref().borrow_mut().keys[i] = leaf.as_ref().borrow_mut().keys[i -1];
-        leaf.as_ref().borrow_mut().pointers[i] = leaf.as_ref().borrow_mut().pointers[i - 1].clone();
+    let mut i = leaf_ref.num_keys;
+    while i > insertion_point{
+        leaf_ref.keys[i] = leaf_ref.keys[i-1];
+        leaf_ref.pointers[i] = leaf_ref.pointers[i-1].clone();
+        i-=1;
     }
-    leaf.as_ref().borrow_mut().keys[insertion_point] = key;
-    leaf.as_ref().borrow_mut().pointers[insertion_point] = Some(ptr_record);
-    leaf.as_ref().borrow_mut().num_keys += 1;
 
-    leaf
+    leaf_ref.keys[insertion_point] = key;
+    leaf_ref.pointers[insertion_point] = Some(ptr_record);
+    leaf_ref.num_keys += 1;
+
+    return leaf.clone()
 }
 
 fn insert_into_node(root: NodeType, n: NodeType,
@@ -204,7 +228,7 @@ fn insert_into_parent(root: NodeType, left: NodeType,
     let left_index: usize;
     let parent;
 
-    parent = left.as_ref().borrow_mut().parent.clone();
+    parent = left.as_ref().borrow().parent.clone();
 
     if parent.is_none(){
         return insert_into_new_root(left, key, right);
@@ -241,13 +265,124 @@ fn insert_into_leaf_after_splitting(root: NodeType, leaf: NodeType,
                                     key: isize, ptr_record: NodeType)
 -> NodeType{
     let new_leaf = make_leaf();
+    let mut tmp_keys = [0; ORDER];
+    let mut tmp_pointers: [Option<NodeType>; ORDER+1] = Default::default();
 
+    let mut insertion_index = 0;
+    while insertion_index < ORDER - 1
+        && leaf.as_ref().borrow_mut().keys[insertion_index] < key {
+        insertion_index+=1;
+    }
+
+    let mut i = 0; let mut j = 0;
+    loop{
+        if !(i < leaf.as_ref().borrow_mut().num_keys){ break; }
+
+        if j == insertion_index{ j+=1; }
+        tmp_keys[j] = leaf.as_ref().borrow_mut().keys[i];
+        tmp_pointers[j] = leaf.as_ref().borrow_mut().pointers[i].clone();
+
+        i+=1; j+=1;
+    }
+
+    tmp_keys[insertion_index] = key;
+    tmp_pointers[insertion_index] = Some(ptr_record);
+
+    leaf.as_ref().borrow_mut().num_keys = 0;
+
+    let split = cut(ORDER - 1);
+
+    i=0;
+    while i < split {
+        leaf.as_ref().borrow_mut().pointers[i] = tmp_pointers[i].clone();
+        leaf.as_ref().borrow_mut().keys[i] = tmp_keys[i];
+        leaf.as_ref().borrow_mut().num_keys +=1;
+
+        i +=1;
+    }
+
+    i = split; j=0;
+    while i < ORDER {
+        new_leaf.as_ref().borrow_mut().pointers[j] = tmp_pointers[i].clone();
+        new_leaf.as_ref().borrow_mut().keys[j] = tmp_keys[i];
+        new_leaf.as_ref().borrow_mut().num_keys +=1;
+
+        i+=1; j+=1;
+    }
+
+    new_leaf.as_ref().borrow_mut().pointers[ORDER-1]
+        = leaf.as_ref().borrow_mut().pointers[ORDER-1].clone();
+
+    leaf.as_ref().borrow_mut().pointers[ORDER-1] = Some(new_leaf.clone());
+
+    i=leaf.as_ref().borrow_mut().num_keys;
+    while i < ORDER-1 {
+        leaf.as_ref().borrow_mut().pointers[i] = None;
+        i+=1;
+    }
+    i=new_leaf.as_ref().borrow_mut().num_keys;
+    while i < ORDER-1 {
+        new_leaf.as_ref().borrow_mut().pointers[i] = None;
+        i+=1;
+    }
+
+    new_leaf.as_ref().borrow_mut().parent = leaf.as_ref().borrow_mut().parent.clone();
+    let new_key = new_leaf.as_ref().borrow_mut().keys[0];
+
+    return insert_into_parent(root, leaf, new_key, new_leaf);
+}
+
+fn start_new_tree(key: isize, record_ptr: NodeType)
+-> NodeType{
+    let root = make_leaf();
+    root.as_ref().borrow_mut().keys[0] = key;
+    root.as_ref().borrow_mut().pointers[0] = Some(record_ptr);
+    root.as_ref().borrow_mut().pointers[ORDER-1] = None;
+    root.as_ref().borrow_mut().parent = None;
+    root.as_ref().borrow_mut().num_keys +=1;
+    return root;
+}
+
+fn insert(root: Option<NodeType>, key: isize, value: i128) -> NodeType{
+    let mut record_ptr = find(root.clone(), key);
+    if record_ptr.is_some(){
+        // update
+        record_ptr.unwrap().as_ref().borrow_mut().value = value;
+        return root.unwrap();
+    }
+
+    record_ptr = Some(make_record(value));
+
+    if root.as_ref().is_none(){
+        return start_new_tree(key, record_ptr.unwrap());
+    }
+
+    let mut leaf = find_leaf(root.clone(), key);
+    assert!(leaf.as_ref().is_some());
+
+    if leaf.as_ref().unwrap().as_ref().borrow().num_keys < ORDER-1{
+        leaf = Some(insert_into_leaf(leaf.unwrap(), key, record_ptr.unwrap()));
+        return root.unwrap();
+    }
+
+    return insert_into_leaf_after_splitting(root.unwrap(), leaf.unwrap(), key, record_ptr.unwrap());
 }
 
 
 fn main(){
-    for i in 1..3{
-        println!("{}", i);
-    }
+    let mut root = insert(None, 10, 10);
+    root = insert(Some(root), 9, 9);
+    root = insert(Some(root), 8, 8);
+    root = insert(Some(root), 7, 7);
+    root = insert(Some(root), 11, 11);
+    root = insert(Some(root), 12, 12);
+    root = insert(Some(root), 13, 13);
+    root = insert(Some(root), 14, 14);
+    root = insert(Some(root), 15, 15);
+    root = insert(Some(root), 16, 16);
 
+
+
+    let record = find(Some(root), 16);
+    assert!(record.is_some() && record.unwrap().as_ref().borrow().value == 16);
 }
