@@ -134,58 +134,7 @@ int main(int argc, char **argv)
     ros::spinOnce(); // はじめにコールバック関数を呼んでおく
     ros::Time::waitForValid();
 
-    // so you have to impl "search rand mark list by odometry.
-    // one pose, multiple rand mark list.
-    // wanna get all result that match to this pose
-    // provide variety of query... search by and/or operation,
-    // and sort by some special key
 
-    LandmarkTable table;
-
-//    table.insert(::Pose(1, 0, 0), { RandMark(1) });
-//    table.insert(::Pose(9, 2.4, 15), { RandMark(2) });
-//    table.insert(::Pose(9, 0, 100), { RandMark(3) });
-
-    //save landmark data
-    getMap("landmarksmap.txt");
-    for(const auto &field: map_){
-        ::Pose pose(field.robot_pos.x,
-                    field.robot_pos.y,
-                    field.robot_pos.z); // theta or z, whatever.
-
-        std::vector<RandMark> rand_marks{};
-        for(const auto &kv: field.landmarks){
-            RandMark randMark(kv.first);
-            randMark.points = kv.second;
-
-            rand_marks.push_back(randMark);
-        }
-
-        table.insert(pose, rand_marks);
-    }
-
-    ecl::Thread t1([&table](){
-        auto start = ros::Time::now();
-        auto result = table
-                .select("(0 < x & x < 9) | ((1 < y & y < 2.5) & ( 0 < theta & theta < 30 ))")
-                .orderBy("x");
-        auto end = ros::Time::now();
-        cout << "T1: " << (end - start).toSec() << endl;
-    });
-
-    ecl::Thread t2([&table](){
-        auto start = ros::Time::now();
-        auto result = table
-                .select("10 < x")
-                .orderBy("x");
-        auto end = ros::Time::now();
-        cout << "T2: " << (end - start).toSec() << endl;
-    });
-
-    t1.join();
-    t2.join();
-
-//    assert(result.result.size() == 2);
 
     return 0;
 }
