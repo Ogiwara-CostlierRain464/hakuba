@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
         tf
         ecl_threads
         ecl_utilities
+        move_base_msgs
         )
 
 catkin_package(

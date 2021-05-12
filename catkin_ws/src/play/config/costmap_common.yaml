@@ -1,4 +1,4 @@
-footprint: [[-0.2, -0.2], [-0.2, 0.2], [0.2, 0.2], [0.2, -0.2g]]
+footprint: [[-0.2, -0.13], [-0.2, 0.13], [0.08, 0.13], [0.08, -0.13]]
 footprint_padding: 0.01
 
 robot_base_frame: beego/base_link
@@ -21,4 +21,4 @@ obstacles_laser:
   laser: {data_type: LaserScan, clearing: true, marking: true, topic: scan, inf_is_valid: true}
 
 inflation:
-  inflation_radius: 0.05
+  inflation_radius: 0.02

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="find_moving_objects" type="laserscan_interpreter_node" name="laserscan_interpreter_node">
+        <param name="subscribe_topic" value="beego/scan"/>
+        <param name="fixed_frame" value="beego/odom"/>
+        <param name="base_frame" value="beego/base_link"/>
+
+        <remap from="scan" to="/beego/scan"/>
+        <remap from="odom" to="/beego/diff_drive_controller/odom"/>
+    </node>
+
+</launch>
