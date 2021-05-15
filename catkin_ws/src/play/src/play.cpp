@@ -2,8 +2,12 @@
 #include <ros/ros.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
+#include <sensor_msgs/LaserScan.h>
+#include "beego_controller.h"
 
+using namespace std;
 using namespace geometry_msgs;
+using namespace sensor_msgs;
 
 bool moveToGoad(const geometry_msgs::Point &pos, const geometry_msgs::Quaternion &quat){
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>
@@ -30,8 +34,7 @@ bool moveToGoad(const geometry_msgs::Point &pos, const geometry_msgs::Quaternion
     if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
         ROS_INFO("You have reached the destination");
         return true;
-    }
-    else{
+    }else{
         ROS_INFO("The robot failed to reach the destination");
         return false;
     }
@@ -40,37 +43,61 @@ bool moveToGoad(const geometry_msgs::Point &pos, const geometry_msgs::Quaternion
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "play");
+    BeegoController b{};
+    ros::Duration(1.0).sleep();
     ros::NodeHandle n;
     ros::spinOnce();
-    // go
-    // x: -2.6 y: -4.21
-    // z: -1  w: 0.17
+    // STEP1: go to fork point
     Point p; Quaternion q;
     p.x = 0.85; p.y = -0;
-    q.z = -0.67; q.w = 0.73;
-    moveToGoad(p, q);
-
-    //check lidar scan at here
-
-
-    // x: 0.5, y: -0.9  | z: -0.7, w: 0.7
-    p.x = 0.5; p.y = -0.9;
     q.z = -0.7; q.w = 0.7;
     moveToGoad(p, q);
 
+    // STEP2: check either left or right is open.
+    bool left;
 
-    // x: 0.5, y: -2.29 | z: -0.7, w: 0.7
-    p.x = 0.4; p.y = -2.7;
-    q.z = -0.7; q.w = 0.7;
-    moveToGoad(p, q);
+    LaserScan scan;
+    b.getCurrentScan(scan);
+    size_t middle = -scan.angle_min / scan.angle_increment;
 
-    // x: -0.9, y* -2.9 | z: 0.99, w: 0
+    cout << scan.ranges[middle - 10] << endl;
+    cout << scan.ranges[middle + 10] << endl;
+    if(scan.ranges[middle + 10] > 1){
+        left = true;
+    }else{
+        left = false;
+    }
+    // STEP3: switch statement.
+
+    if(left){
+        // before OJYAMA robot.
+        p.x = 1.5; p.y = -0.9;
+        q.z = -0.7; q.w = 0.7;
+        moveToGoad(p, q);
+
+        // go straight
+        p.x = 1.4; p.y = -2.5;
+        q.z = -0.7; q.w = 0.7;
+        moveToGoad(p, q);
+    }else{
+        // before OJYAMA robot.
+        p.x = 0.5; p.y = -0.9;
+        q.z = -0.7; q.w = 0.7;
+        moveToGoad(p, q);
+
+        // go straight
+        p.x = 0.4; p.y = -2.5;
+        q.z = -0.7; q.w = 0.7;
+        moveToGoad(p, q);
+    }
+
+    // STEP 4: right or warehouse C
     p.x = -0.9; p.y = -2.9;
     q.z = -0.99; q.w = 0;
     moveToGoad(p, q);
 
 
-    // x: -0.9, y* -2.4 | z: 0.7, w: 0.7
+    // STEP 5: in front of warehouse C
     p.x = -0.85; p.y = -2.4;
     q.z = 0.7; q.w = 0.7;
     moveToGoad(p, q);
