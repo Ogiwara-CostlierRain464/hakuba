@@ -106,17 +106,26 @@ int main(int argc, char** argv){
 
     // STEP 6: go straight
 
+    ROS_INFO("STEP6: go strsight");
+
+    b.stop();
+    ros::Duration(1.0).sleep();
+    
+
     geometry_msgs::Pose ref_pose;
     geometry_msgs::Pose pose;
 
     b.updateReferencePose(ref_pose);
-    for(;;){
-        b.getCurrentPose(pose);
-        double dist_diff = hypot(pose.position.x - ref_pose.position.x,
-                                 pose.position.y - ref_pose.position.y);
 
+    ros::WallTime start, now;
+
+    start = ros::WallTime::now();
+    
+    while(ros::ok()){
         b.straight();
-        if(dist_diff > 0.7){
+        now = ros::WallTime::now();
+        if((now - start).toSec() > 4){
+            b.stop();
             break;
         }
 
