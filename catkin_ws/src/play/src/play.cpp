@@ -66,7 +66,7 @@ int main(int argc, char** argv){
     cout << deg << endl;
     cout << scan.ranges[middle - deg] << endl; // left
     cout << scan.ranges[middle + deg] << endl; // right
-    if(scan.ranges[middle - deg] > 2){
+    if(scan.ranges[middle - deg] > 5){
         left = true;
     }else{
         left = false;
