@@ -60,9 +60,11 @@ int main(int argc, char** argv){
     b.getCurrentScan(scan);
     size_t middle = -scan.angle_min / scan.angle_increment;
 
-    cout << scan.ranges[middle - 10] << endl;
-    cout << scan.ranges[middle + 10] << endl;
-    if(scan.ranges[middle + 10] > 1){
+    size_t deg = (3.14 / 4) / abs(scan.angle_increment);
+    cout << deg << endl;
+    cout << scan.ranges[middle - deg] << endl; // left
+    cout << scan.ranges[middle + deg] << endl; // right
+    if(scan.ranges[middle - deg] > 2){
         left = true;
     }else{
         left = false;
@@ -101,6 +103,26 @@ int main(int argc, char** argv){
     p.x = -0.85; p.y = -2.4;
     q.z = 0.7; q.w = 0.7;
     moveToGoad(p, q);
+
+    // STEP 6: go straight
+
+    geometry_msgs::Pose ref_pose;
+    geometry_msgs::Pose pose;
+
+    b.updateReferencePose(ref_pose);
+    for(;;){
+        b.getCurrentPose(pose);
+        double dist_diff = hypot(pose.position.x - ref_pose.position.x,
+                                 pose.position.y - ref_pose.position.y);
+
+        b.straight();
+        if(dist_diff > 0.7){
+            break;
+        }
+
+        ros::spinOnce();
+        ros::Rate(10).sleep();
+    }
 
     return 0;
 }
