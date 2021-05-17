@@ -75,12 +75,12 @@ int main(int argc, char** argv){
 
     if(left){
         // before OJYAMA robot.
-        p.x = 1.5; p.y = -0.9;
+        p.x = 1.25; p.y = -0.9;
         q.z = -0.7; q.w = 0.7;
         moveToGoad(p, q);
 
         // go straight
-        p.x = 1.4; p.y = -2.5;
+        p.x = 1.2; p.y = -2.5;
         q.z = -0.7; q.w = 0.7;
         moveToGoad(p, q);
     }else{
