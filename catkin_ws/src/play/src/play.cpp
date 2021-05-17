@@ -48,8 +48,8 @@ int main(int argc, char** argv){
     ros::NodeHandle n;
     ros::spinOnce();
     // STEP1: go to fork point
-    Point p; Quaternion q;
-    p.x = 0.85; p.y = -0;
+    Point p{}; Quaternion q{};
+    p.x = 0.8; p.y = 0;
     q.z = -0.7; q.w = 0.7;
     moveToGoad(p, q);
 
