@@ -56,6 +56,8 @@ int main(int argc, char** argv){
     // STEP2: check either left or right is open.
     bool left;
 
+    b.stop();
+    ros::Duration(1).sleep();
     LaserScan scan;
     b.getCurrentScan(scan);
     size_t middle = -scan.angle_min / scan.angle_increment;
