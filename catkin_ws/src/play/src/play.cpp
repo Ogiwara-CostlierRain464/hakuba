@@ -62,7 +62,7 @@ int main(int argc, char** argv){
     b.getCurrentScan(scan);
     size_t middle = -scan.angle_min / scan.angle_increment;
 
-    size_t deg = (3.14 / 4) / abs(scan.angle_increment);
+    size_t deg = (3.14 / 3) / abs(scan.angle_increment);
     cout << deg << endl;
     cout << scan.ranges[middle - deg] << endl; // left
     cout << scan.ranges[middle + deg] << endl; // right
