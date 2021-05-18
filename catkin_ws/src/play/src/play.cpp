@@ -66,7 +66,7 @@ int main(int argc, char** argv){
     cout << deg << endl;
     cout << scan.ranges[middle - deg] << endl; // left
     cout << scan.ranges[middle + deg] << endl; // right
-    if(scan.ranges[middle - deg] > 2.7){
+    if(scan.ranges[middle - deg] > 3){
         left = true;
     }else{
         left = false;
@@ -85,7 +85,7 @@ int main(int argc, char** argv){
         moveToGoad(p, q);
     }else{
         // before OJYAMA robot.
-        p.x = 0.5; p.y = -0.9;
+        p.x = 0.4; p.y = -0.9;
         q.z = -0.7; q.w = 0.7;
         moveToGoad(p, q);
 
@@ -126,7 +126,7 @@ int main(int argc, char** argv){
     while(ros::ok()){
         b.straight();
         now = ros::WallTime::now();
-        if((now - start).toSec() > 4){
+        if((now - start).toSec() > 4.3){
             b.stop();
             break;
         }
