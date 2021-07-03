@@ -16,5 +16,6 @@ cd ..
 catkin_make
 
 # Register to .bashrc
+echo "Don't forget to register to bashrc!"
 # typoでbashを上書きしないように！！！！！
-## source /home/ogiwara/Documents/steer_drive_ros/devel/setup.bash
+## source ~/Documents/steer_drive_ros/devel/setup.bash
