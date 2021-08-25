@@ -3,6 +3,7 @@ project(hakuba)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rospy
   std_msgs
   geometry_msgs
   rostime
@@ -35,6 +36,10 @@ add_executable(time_sync
 )
 target_link_libraries(time_sync
   ${catkin_LIBRARIES}
+)
+
+catkin_install_python(PROGRAMS scripts/test.py
+  DESTINATION  ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 #############

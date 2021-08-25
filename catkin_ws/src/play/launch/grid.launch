@@ -1,0 +1,7 @@
+<launch>
+    <node pkg="grid_map_visualization" type="grid_map_visualization" name="grid_map_visualization" output="screen">
+
+        <param name="grid_map_topic" value="/grid_map_pcl_loader_node/grid_map_from_raw_pointcloud" />
+        <rosparam file="$(find play)/config/grid.yaml" command="load"  />
+    </node>
+</launch>
