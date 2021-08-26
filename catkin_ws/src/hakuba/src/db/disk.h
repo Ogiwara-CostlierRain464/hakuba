@@ -8,13 +8,32 @@
 #include <array>
 
 struct PageId{
+    uint64_t body{};
+
+    PageId() = default;
+
     explicit PageId(uint64_t body_): body(body_)
     {}
 
-    uint64_t body;
-
     static PageId INVALID_PAGE_ID;
+
+    bool operator==(const PageId &rhs) const{
+      return body == rhs.body;
+    }
 };
+
+namespace std{
+  template <>
+  struct hash<PageId>{
+    std::size_t operator()(const PageId &p) const{
+      using std::size_t;
+      using std::hash;
+      using std::string;
+
+      return hash<uint64_t>()(p.body);
+    }
+  };
+}
 
 PageId PageId::INVALID_PAGE_ID = PageId(std::numeric_limits<uint64_t>::max());
 
