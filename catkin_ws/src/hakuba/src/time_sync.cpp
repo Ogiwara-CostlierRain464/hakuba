@@ -16,6 +16,7 @@
 #include <unistd.h>
 #include "sql.h"
 #include "mapload.h"
+#include "db/disk.h"
 
 using namespace std;
 using namespace ros;
