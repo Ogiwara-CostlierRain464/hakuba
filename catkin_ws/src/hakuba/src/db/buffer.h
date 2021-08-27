@@ -30,6 +30,7 @@ struct Frame{
     std::shared_ptr<Buffer> buffer{};
 
     Frame(const Frame &other) = delete;
+    Frame(Frame &&other) = default;
 };
 
 struct BufferPool{
@@ -92,8 +93,63 @@ struct BufferPoolManager{
   disk(std::move(disk_)),
   pool(std::move(pool_)){}
 
-  std::shared_ptr<Buffer> fetch_page(){
+  std::shared_ptr<Buffer> fetch_page(PageId page_Id){
+    if(pageTable.find(page_Id) != pageTable.end()){
+      BufferId buffer_Id = pageTable.at(page_Id);
+      Frame &frame = pool[buffer_Id];
+      frame.usageCount++;
+      return frame.buffer;
+    }
+    auto buffer_Id = pool.evict();
+    Frame &frame = pool[buffer_Id];
+    auto evict_page_id = frame.buffer->pageId;
+    {
+      auto &buffer = frame.buffer;
+      if(buffer->isDirty){
+        this->disk.writePageData(evict_page_id, buffer->page);
+      }
+      buffer->pageId = page_Id;
+      buffer->isDirty = false;
+      this->disk.readPageData(page_Id, buffer->page);
+      frame.usageCount = 1;
+    }
+    auto page = frame.buffer;
+    this->pageTable.erase(evict_page_id);
+    this->pageTable[page_Id] = buffer_Id;
+    return page;
+  }
 
+  std::shared_ptr<Buffer> createPage(){
+    auto buffer_id = pool.evict();
+    auto &frame = pool[buffer_id];
+    auto evict_page_id = frame.buffer->pageId;
+    auto &buffer = frame.buffer;
+    if(buffer->isDirty){
+      disk.writePageData(evict_page_id, buffer->page);
+    }
+    pageTable.erase(evict_page_id);
+    auto page_id = disk.allocatePage();
+    *buffer = std::move(Buffer());
+    // is it sure to dealloc array?
+    buffer->pageId = page_id;
+    buffer->isDirty = true;
+    frame.usageCount = 1;
+    auto page = frame.buffer;
+    pageTable.erase(evict_page_id);
+    pageTable[page_id] = buffer_id;
+    return page;
+  }
+
+  void flush(){
+    for(auto &pair : pageTable){
+      PageId page_id = pair.first;
+      BufferId buffer_id = pair.second;
+      auto &frame = pool[buffer_id];
+      auto &page = frame.buffer->page;
+      disk.writePageData(page_id, page);
+      frame.buffer->isDirty = false;
+    }
+    disk.sync();
   }
 };
 
