@@ -7,7 +7,8 @@
 #include <iostream>
 #include <array>
 
-struct PageId{
+namespace {
+  struct PageId{
     uint64_t body{};
 
     PageId() = default;
@@ -20,8 +21,11 @@ struct PageId{
     bool operator==(const PageId &rhs) const{
       return body == rhs.body;
     }
-};
+  };
 
+  PageId PageId::INVALID_PAGE_ID = PageId(std::numeric_limits<uint64_t>::max());
+
+}
 namespace std{
   template <>
   struct hash<PageId>{
@@ -34,8 +38,6 @@ namespace std{
     }
   };
 }
-
-PageId PageId::INVALID_PAGE_ID = PageId(std::numeric_limits<uint64_t>::max());
 
 const uint64_t PAGE_SIZE = 4096;
 
@@ -67,7 +69,15 @@ public:
         std::fstream heap_file;
         heap_file.open(heap_file_path,
                        std::ios::in | std::ios::out | std::ios::binary );
+
+        if(!heap_file.is_open()){
+          // file do not exist
+          heap_file.open(heap_file_path,
+                         std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc );
+        }
+
         assert(heap_file.is_open() && "Could not create disk file!");
+
         DiskManager::create(std::move(heap_file), out);
     }
 

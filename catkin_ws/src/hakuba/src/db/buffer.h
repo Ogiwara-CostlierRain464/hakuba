@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <stdexcept>
 #include "disk.h"
 
 struct BufferId{
@@ -27,8 +28,9 @@ struct Buffer{
 
 struct Frame{
     uint64_t  usageCount{};
-    std::shared_ptr<Buffer> buffer{};
+    std::shared_ptr<Buffer> buffer{std::make_shared<Buffer>()};
 
+    Frame() = default;
     Frame(const Frame &other) = delete;
     Frame(Frame &&other) = default;
 };
@@ -60,13 +62,14 @@ struct BufferPool{
         victim_id = nextVictimId;
         break;
       }
-      if(frame.buffer.operator bool()){
+      if(frame.buffer.use_count() == 1){
         frame.usageCount--;
         consecutive_pinned = 0;
       }else{
         consecutive_pinned++;
         if(consecutive_pinned >= pool_size){
-          assert(false && "Pool size exceeded!");
+//          assert(false && "Pool size exceeded!");
+          throw std::range_error("Pool size exceeded!");
         }
       }
       this->nextVictimId = incrementId(nextVictimId);
