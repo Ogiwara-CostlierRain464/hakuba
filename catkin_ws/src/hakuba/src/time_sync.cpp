@@ -19,6 +19,7 @@
 #include "db/disk.h"
 #include "db/buffer.h"
 #include "db/memcmpable.h"
+#include "db/tuple.h"
 
 using namespace std;
 using namespace ros;

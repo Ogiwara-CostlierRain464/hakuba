@@ -4,6 +4,7 @@
 #include "../src/db/memcmpable.h"
 
 using namespace std;
+using namespace memcmpable;
 
 struct TestMemcmpable: public ::testing::Test{};
 
