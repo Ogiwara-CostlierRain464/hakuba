@@ -18,6 +18,7 @@
 #include "mapload.h"
 #include "db/disk.h"
 #include "db/buffer.h"
+#include "db/memcmpable.h"
 
 using namespace std;
 using namespace ros;
