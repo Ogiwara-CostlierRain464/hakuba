@@ -1,0 +1,6 @@
+#ifndef HAKUBA_SLOTTED_H
+#define HAKUBA_SLOTTED_H
+
+
+
+#endif //HAKUBA_SLOTTED_H

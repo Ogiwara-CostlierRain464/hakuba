@@ -4,6 +4,10 @@
 #include <cstddef>
 #include <vector>
 
+// Pos
+// SHORE MT?
+// ARIES
+// Database system implementation
 namespace memcmpable {
   const size_t ESCAPE_LENGTH = 9;
 

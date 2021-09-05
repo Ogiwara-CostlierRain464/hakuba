@@ -47,3 +47,11 @@ if __name__ == "__main__":
         talker()
     except rospy.ROSInterruptException:
         pass
+
+
+# You have to impl Martix Profile in C++
+# Only utilize CPU power, not GPU!
+# At first, you have to check
+# - Matrix XIV (Matrix Profile with GPU) https://dl.acm.org/doi/pdf/10.1145/3357223.3362721
+# - Check if this paper exists. https://mediatum.ub.tum.de/doc/1471292/1471292.pdf
+
