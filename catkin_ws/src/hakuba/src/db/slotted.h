@@ -29,9 +29,7 @@ struct Slotted{
   Layout::RefBytes body;
 
   explicit Slotted(const Layout::RefBytes &bytes){
-    std::pair<Layout, Layout::RefBytes> out;
-
-    LayoutVerified<SlottedHeader>::newFromPrefix(bytes, out);
+    auto out = LayoutVerified<SlottedHeader>::newFromPrefix(bytes);
     header = std::move(out.first);
     body = std::move(out.second);
   }
@@ -53,20 +51,24 @@ struct Slotted{
     return sizeof(Pointer) * numSlots();
   }
 
-  void pointers(Pointers &out){
+  Pointers pointers(){
     Layout::RefBytes slice(body.begin(), body.begin() + pointersSize());
-    Pointers::newSlice(slice, out);
+    return Pointers::newSlice(slice);
   }
 
-  void data(Pointer pointer, Layout::RefBytes &out){
+  Layout::RefBytes data(Pointer pointer){
     auto range = pointer.range();
-    out = Layout::RefBytes(
+    return Layout::RefBytes(
       body.begin() + range.first,
       body.end() + range.second);
   }
 
   void push_back(){
 
+  }
+
+  Layout::RefBytes operator[](size_t index){
+    return data(pointers().type->at(index));
   }
 };
 

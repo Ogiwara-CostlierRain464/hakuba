@@ -6,6 +6,7 @@
 
 template<typename T>
 struct LayoutVerified{
+  typedef LayoutVerified<T> Self;
   typedef std::vector<uint8_t> Bytes;
   typedef std::vector<std::reference_wrapper<uint8_t>> RefBytes;
   typedef T Type;
@@ -44,8 +45,7 @@ struct LayoutVerified{
    * @param bytes
    * @param out
    */
-  static void newFromPrefix(const RefBytes &bytes,
-                              std::pair<LayoutVerified<T>, RefBytes> &out){
+  static std::pair<Self, RefBytes> newFromPrefix(const RefBytes &bytes){
     if ((bytes.size() < sizeof(T)) or (alignof(Bytes) % alignof(T) != 0)){
       assert(false && "Alignment statement not satisfied!");
     }
@@ -53,17 +53,16 @@ struct LayoutVerified{
     RefBytes bytes2(bytes.begin(), bytes.begin() + sizeof(T));
     RefBytes suffix(bytes.begin() + sizeof(T), bytes.end());
 
-    out = std::make_pair(LayoutVerified<T>(bytes2), suffix);
+    return std::make_pair(LayoutVerified<T>(bytes2), suffix);
   }
 
-  static void newSlice(const RefBytes &bytes,
-                        LayoutVerified<T> &out){
+  static Self newSlice(const RefBytes &bytes){
     assert(sizeof(T) != 0);
     if(bytes.size() % sizeof(T) != 0 or alignof(Bytes) % alignof(T) != 0){
       assert(false && "Alignment statement not satisfied!");
     }
 
-    out = LayoutVerified<T>(bytes);
+    return LayoutVerified<T>(bytes);
   }
 };
 

@@ -36,10 +36,9 @@ TEST_F(TestLayoutVerified, test){
   using LV = LayoutVerified<std::array<uint8_t, 2>>;
   LV::Bytes buf{1,2,3,4};
   LV::RefBytes buf_ref(buf.begin(), buf.end());
-  std::pair<LV, LV::RefBytes> out;
+  std::pair<LV, LV::RefBytes> out = LV::newFromPrefix(buf_ref);
 
   // verify vector splitting works.
-  LV::newFromPrefix(buf_ref, out);
   LV::Bytes tmp{3, 4};
   LV::RefBytes tmp_ref(tmp.begin(), tmp.end());
   EXPECT_EQ(out.second, tmp_ref);
