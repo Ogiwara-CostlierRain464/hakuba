@@ -23,17 +23,15 @@ struct Pointer{
 typedef LayoutVerified<std::vector<Pointer>> Pointers;
 
 struct Slotted{
-  typedef std::vector<uint8_t> Bytes;
+  using Layout = LayoutVerified<SlottedHeader>;
 
-  LayoutVerified<SlottedHeader> header;
-  Bytes body;
+  Layout header;
+  Layout::RefBytes body;
 
-  explicit Slotted(Bytes &&bytes){
-    std::pair<
-      LayoutVerified<SlottedHeader>,
-      Bytes> out;
+  explicit Slotted(const Layout::RefBytes &bytes){
+    std::pair<Layout, Layout::RefBytes> out;
 
-    LayoutVerified<SlottedHeader>::newFromPrefix(std::move(bytes), out);
+    LayoutVerified<SlottedHeader>::newFromPrefix(bytes, out);
     header = std::move(out.first);
     body = std::move(out.second);
   }
@@ -44,11 +42,11 @@ struct Slotted{
 
   size_t numSlots() const{
     // there should be some way to convert!
-    return header.type.numSlots;
+    return header.type->numSlots;
   }
 
   size_t freeSpace() const{
-    return header.type.freeSpaceOffset;
+    return header.type->freeSpaceOffset;
   }
 
   size_t pointersSize() const{
@@ -56,17 +54,18 @@ struct Slotted{
   }
 
   void pointers(Pointers &out){
-    Bytes slice(body.begin(), body.begin() + pointersSize());
-    Pointers::newSlice(std::move(slice), out);
+    Layout::RefBytes slice(body.begin(), body.begin() + pointersSize());
+    Pointers::newSlice(slice, out);
   }
 
-  void data(Pointer pointer, Bytes &out){
+  void data(Pointer pointer, Layout::RefBytes &out){
     auto range = pointer.range();
-    out = Bytes(body.begin() + range.first,
-          body.end() + range.second);
+    out = Layout::RefBytes(
+      body.begin() + range.first,
+      body.end() + range.second);
   }
 
-  void insert(){
+  void push_back(){
 
   }
 };

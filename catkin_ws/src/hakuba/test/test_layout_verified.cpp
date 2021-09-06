@@ -13,7 +13,7 @@ struct alignas(8) A{
   uint32_t _pad; // 4byte
 };
 
-TEST_F(TestLayoutVerified, test){
+TEST_F(TestLayoutVerified, layout_test){
   static_assert(sizeof(LayoutVerified<A>::Bytes) == 24, "");
   static_assert(alignof(LayoutVerified<A>::Bytes) == 8, "");
 
@@ -30,19 +30,25 @@ TEST_F(TestLayoutVerified, test){
   static_assert(sizeof(bytes) == 24, "");
   bytes.push_back(4);
   static_assert(sizeof(bytes) == 24, "");
-  // sizeof(Bytes) is independent from it's contents.
-  // At here I wanna
+}
 
-  // Because Bytes are array of uint8_t, we can use
-  // .size as bytes length.
+TEST_F(TestLayoutVerified, test){
   using LV = LayoutVerified<std::array<uint8_t, 2>>;
   LV::Bytes buf{1,2,3,4};
-  std::pair<LV, LV::Bytes> out;
+  LV::RefBytes buf_ref(buf.begin(), buf.end());
+  std::pair<LV, LV::RefBytes> out;
 
-  LV::newFromPrefix(std::move(buf), out);
-  LV::Bytes tmp{3,4};
-  EXPECT_EQ(out.second, tmp);
+  // verify vector splitting works.
+  LV::newFromPrefix(buf_ref, out);
+  LV::Bytes tmp{3, 4};
+  LV::RefBytes tmp_ref(tmp.begin(), tmp.end());
+  EXPECT_EQ(out.second, tmp_ref);
   LV::Type tmp2{1,2};
-  EXPECT_EQ(out.first.type, tmp2);
+  LV::Type *result = out.first.type;
+  EXPECT_EQ(*result, tmp2);
+
+  // verify source change affects to layout.
+  buf[0] = 5;
+  EXPECT_EQ(out.first.type->at(0), 5);
 }
 
