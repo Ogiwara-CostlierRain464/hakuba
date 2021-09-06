@@ -6,30 +6,46 @@
 
 template<typename T>
 struct LayoutVerified{
-  typedef std::vector<uint8_t> Bytes ;
+  typedef std::vector<uint8_t> Bytes;
+  typedef T Type;
+
+  /**
+   * `bytes` is array of 1 byte, so bytes.size() is exactly
+   * same as byte count.
+   */
   Bytes bytes{};
   // Phantom Data
   T type{};
+
+  LayoutVerified() = default;
 
   explicit LayoutVerified(Bytes &&bytes_){
     if(bytes_.size() != sizeof(T) or alignof(Bytes) % alignof(T) != 0){
       assert(false && "Alignment statement not satisfied!");
     }
     bytes = std::move(bytes_);
+    // unsafe
+    type = *reinterpret_cast<const T*>(bytes.data());
   }
 
-  static void new_from_prefix(Bytes &&bytes,
+  /**
+   *
+   * @param bytes
+   * @param out
+   */
+  static void newFromPrefix(Bytes &&bytes,
                               std::pair<LayoutVerified<T>, Bytes> &out){
-    if (!(bytes.size() < sizeof(T) or alignof(Bytes) % alignof(T) != 0)){
+    if ((bytes.size() < sizeof(T)) or (alignof(Bytes) % alignof(T) != 0)){
       assert(false && "Alignment statement not satisfied!");
     }
-    std::vector<Bytes> bytes2(bytes.begin(), bytes.begin() + sizeof(T));
-    std::vector<Bytes> suffix(bytes.begin() + sizeof(T), bytes.end());
 
-    return std::make_pair(LayoutVerified<T>(std::move(bytes2)), std::move(suffix));
+    Bytes bytes2(bytes.begin(), bytes.begin() + sizeof(T));
+    Bytes suffix(bytes.begin() + sizeof(T), bytes.end());
+
+    out = std::make_pair(LayoutVerified<T>(std::move(bytes2)), std::move(suffix));
   }
 
-  static void new_slice(Bytes &&bytes,
+  static void newSlice(Bytes &&bytes,
                         LayoutVerified<T> &out){
     assert(sizeof(T) != 0);
     if(bytes.size() % sizeof(T) != 0 or alignof(Bytes) % alignof(T) != 0){
@@ -40,16 +56,5 @@ struct LayoutVerified{
   }
 };
 
-struct Pointer{
-  uint16_t offset;
-  uint16_t len;
-
-  // return range
-  std::pair<size_t, size_t> range(){
-    return std::make_pair(offset, offset+len);
-  }
-};
-
-typedef LayoutVerified<std::vector<Pointer>> Pointers;
-
 #endif //HAKUBA_LAYOUT_VERIFIED_H
+
