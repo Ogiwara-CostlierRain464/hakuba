@@ -10,7 +10,6 @@ struct TestLayoutVerified: public ::testing::Test{};
 struct alignas(8) A{
   uint16_t numSlots; // 2byte
   uint16_t freeSpaceOffset; // 2byte
-  uint32_t _pad; // 4byte
 };
 
 TEST_F(TestLayoutVerified, layout_test){

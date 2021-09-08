@@ -32,12 +32,16 @@ struct LayoutVerified{
    * @param bytes_
    */
   explicit LayoutVerified(const RefBytes &bytes_){
-    if(bytes_.size() != sizeof(T) or alignof(Bytes) % alignof(T) != 0){
-      assert(false && "Alignment statement not satisfied!");
-    }
+//    if(bytes_.size() != sizeof(T) or alignof(Bytes) % alignof(T) != 0){
+//      assert(false && "Alignment statement not satisfied!");
+//    }
     bytes = RefBytes(bytes_.begin(), bytes_.end());
     // unsafe
     type = reinterpret_cast<T*>(&bytes[0].get());
+  }
+
+  T* operator()(){
+    return type;
   }
 
   /**
@@ -57,8 +61,10 @@ struct LayoutVerified{
   }
 
   static Self newSlice(const RefBytes &bytes){
-    assert(sizeof(T) != 0);
-    if(bytes.size() % sizeof(T) != 0 or alignof(Bytes) % alignof(T) != 0){
+    // get inner type
+    using E = typename std::remove_extent<T>::type;
+    assert(sizeof(E) != 0);
+    if(bytes.size() % sizeof(E) != 0 or alignof(Bytes) % alignof(T) != 0){
       assert(false && "Alignment statement not satisfied!");
     }
 
