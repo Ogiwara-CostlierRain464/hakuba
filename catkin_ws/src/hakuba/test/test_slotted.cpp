@@ -23,5 +23,9 @@ TEST_F(TestSlotted, test){
   std::vector<uint8_t> world{'w', 'o'};
   EXPECT_TRUE(slotted.tryPushBack(world));
   EXPECT_EQ(slotted.dataAt(0), hello_ref);
+  EXPECT_EQ((*(slotted.pointers().type))[0].len, 5);
+  EXPECT_EQ((*(slotted.pointers().type))[0].offset, 115);
+  EXPECT_EQ((*(slotted.pointers().type))[1].len, 2);
+  EXPECT_EQ((*(slotted.pointers().type))[1].offset, 113);
 
 }
