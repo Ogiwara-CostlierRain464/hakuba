@@ -42,7 +42,7 @@ TEST_F(Unit, thread){
 }
 
 TEST_F(Unit, sql){
-    cout << sql::exec("-2.9 < -2");
+  EXPECT_TRUE(sql::exec("-2.9 < -2"));
 }
 
 int main(int argc, char **argv){

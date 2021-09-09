@@ -24,6 +24,10 @@ struct Buffer{
 
     Buffer()= default;
     Buffer(const Buffer &other) = delete;
+
+    void setDirty(){
+      isDirty = true;
+    }
 };
 
 struct Frame{
@@ -149,6 +153,7 @@ struct BufferPoolManager{
       BufferId buffer_id = pair.second;
       auto &frame = pool[buffer_id];
       auto &page = frame.buffer->page;
+      // Why not only dirty page?
       disk.writePageData(page_id, page);
       frame.buffer->isDirty = false;
     }

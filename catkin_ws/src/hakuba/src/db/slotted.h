@@ -49,9 +49,13 @@ struct Slotted{
     return sizeof(Pointer) * numSlots();
   }
 
-  Pointers pointers(){
+  Pointers pointers() const{
     Layout::RefBytes slice(body.begin(), body.begin() + pointersSize());
     return Pointers::newSlice(slice);
+  }
+
+  Pointer pointerAt(size_t index) const{
+    return (*(pointers().type))[index];
   }
 
   Layout::RefBytes data(Pointer pointer){
