@@ -65,7 +65,7 @@ public:
   // node itself don't have any method!
   // it is just a container
   // how to handle search algorithm?
-  bool try_insert(const Layout::Bytes &record){
+  bool tryInsert(const Layout::Bytes &record){
     // Handle it's capacity by itself.
     // if capacity is over, notify insert has failed.
     return body.tryPushBack(record);
@@ -84,10 +84,64 @@ public:
   }
 };
 
-struct Table{
+class Table{
+public:
+  typedef std::vector<std::reference_wrapper<uint8_t>> RefBytes;
+  typedef std::vector<uint8_t> Record;
+
   // have BufferPoolMgr, and top PageId
   // constitute from nodes, and when one node filled,
   // then create new page and node.
+  BufferPoolManager &bufMgr;
+  PageId rootPageId;
+  PageId currentPageId{rootPageId};
+
+  explicit Table(BufferPoolManager &buf_mgr,
+        PageId root_page_id)
+  : bufMgr(buf_mgr), rootPageId(root_page_id)
+  {}
+
+  void insert(const Record &record){
+    auto buffer = bufMgr.fetch_page(currentPageId);
+    RefBytes ref(buffer->page.begin(), buffer->page.end());
+    auto current_node = LinearListNode(ref);
+    auto result = current_node.tryInsert(record);
+    if(result){
+      buffer->setDirty();
+      //bufMgr.flush();
+    }else{
+      // When current page id is filled,
+      // then move to next page.
+      auto new_buffer = bufMgr.createPage();
+      auto new_page_id = new_buffer->pageId;
+      current_node.header.type->nextPageId = new_page_id;
+      currentPageId = new_page_id;
+      // or should we use goto?
+      // TODO: set next page id of new_buffer as INVALID_PAGE_ID
+      insert(record);
+    }
+  }
+
+  bool search(const std::function<bool(const RefBytes&)> &fn, RefBytes &out){
+    // search from root page. when not found within
+    PageId seek_page_id = rootPageId;
+    for(;;){
+      auto buffer = bufMgr.fetch_page(rootPageId);
+      RefBytes ref(buffer->page.begin(), buffer->page.end());
+      auto node = LinearListNode(ref);
+      RefBytes result;
+      bool found = node.search(fn, out);
+      if(found){
+        return true;
+      }else if(node.header.type->nextPageId != PageId::INVALID_PAGE_ID){
+        seek_page_id = node.header.type->nextPageId;
+        continue;
+      }else{
+        assert(node.header.type->nextPageId == PageId::INVALID_PAGE_ID);
+        return false;
+      }
+    }
+  }
 };
 
 

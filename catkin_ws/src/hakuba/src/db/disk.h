@@ -21,6 +21,10 @@ namespace {
     bool operator==(const PageId &rhs) const{
       return body == rhs.body;
     }
+
+    bool operator!=(const PageId &rhs) const{
+      return body != rhs.body;
+    }
   };
 
   PageId PageId::INVALID_PAGE_ID = PageId(std::numeric_limits<uint64_t>::max());

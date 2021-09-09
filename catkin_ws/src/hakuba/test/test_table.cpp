@@ -30,7 +30,7 @@ TEST_F(TestTable, node){
     // Init
     node.body.header.type->numSlots = 0;
     node.body.header.type->freeSpaceOffset = node.body.body.size();
-    ASSERT_TRUE(node.try_insert(record));
+    ASSERT_TRUE(node.tryInsert(record));
     // After node operation, you have to mark
     // the page as dirty.
     buffer->setDirty();
@@ -56,4 +56,26 @@ TEST_F(TestTable, node){
     EXPECT_TRUE(found);
   }
 
+
+  // we should re-design page management and entity!!!
+}
+
+TEST_F(TestTable, table){
+
+  PageId last_page_id;
+  {
+    DiskManager disk;
+    DiskManager::open("/tmp/test3.data", disk);
+    BufferPool pool(100);
+    BufferPoolManager buf_mgr(std::move(disk),
+                              std::move(pool));
+
+    Table table(buf_mgr, PageId(0));
+    for(size_t i = 0; i < 410; i++){
+      std::vector<uint8_t> data(10,i+1);
+      table.insert(data);
+    }
+    // wrong id!
+    last_page_id = table.currentPageId;
+  }
 }
