@@ -27,7 +27,9 @@ TEST_F(TestTable, node){
       ref(buffer->page.begin(), buffer->page.end());
     auto node = LinearListNode(ref);
     std::vector<uint8_t> record{1,2,3};
-    don't forget to init Slotted header!
+    // Init
+    node.body.header.type->numSlots = 0;
+    node.body.header.type->freeSpaceOffset = node.body.body.size();
     ASSERT_TRUE(node.try_insert(record));
     // After node operation, you have to mark
     // the page as dirty.
@@ -47,11 +49,11 @@ TEST_F(TestTable, node){
       ref(buffer->page.begin(), buffer->page.end());
     auto node = LinearListNode(ref);
     std::vector<std::reference_wrapper<uint8_t>> result;
-    bool found = node.search([](const std::vector<std::reference_wrapper<uint8_t>> &record){
-      std::cout << record.size() << std::endl;
+    bool found = node.search([](
+      const std::vector<std::reference_wrapper<uint8_t>> &record){
       return record.size() == 3;
     }, result);
-//    EXPECT_TRUE(found);
+    EXPECT_TRUE(found);
   }
 
 }

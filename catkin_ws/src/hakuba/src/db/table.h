@@ -73,8 +73,6 @@ public:
   // after call this function, you should write data into DiskMgr.
 
   bool search(const std::function<bool(const Layout::RefBytes&)> &fn, Layout::RefBytes &out){
-    // at here you can provide function to run through
-    std::cout << "is " << body.header.type->numSlots << std::endl;
     for(size_t i = 0; i < body.header.type->numSlots; i++){
       auto slot = body.dataAt(i);
       if(fn(slot)){
