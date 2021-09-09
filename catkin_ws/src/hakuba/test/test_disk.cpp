@@ -7,9 +7,6 @@ using namespace std;
 struct DiskTest: public ::testing::Test{};
 
 TEST_F(DiskTest, test){
-    std::fstream heap_file("/home/ogiwara/a.data",std::ios::out | std::ios::binary );
-    assert(heap_file.is_open());
-
     DiskManager disk;
     DiskManager::open("/tmp/test.data", disk);
     auto page_one = disk.allocatePage();

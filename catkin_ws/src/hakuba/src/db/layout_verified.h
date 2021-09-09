@@ -61,6 +61,7 @@ struct LayoutVerified{
   }
 
   static Self newSlice(const RefBytes &bytes){
+    // At here, it should hold T = [E].
     // get inner type
     using E = typename std::remove_extent<T>::type;
     assert(sizeof(E) != 0);

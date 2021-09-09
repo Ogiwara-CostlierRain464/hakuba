@@ -81,14 +81,15 @@ public:
         DiskManager::create(std::move(heap_file), out);
     }
 
-    void readPageData(PageId pageId, std::array<uint8_t, PAGE_SIZE> data){
+    void readPageData(PageId pageId, std::array<uint8_t, PAGE_SIZE> &data){
         uint64_t offset = PAGE_SIZE * pageId.body;
         assert(offset <= std::numeric_limits<int64_t>::max());
         heapFile.seekg((int64_t) offset, std::ios::beg);
         heapFile.read(reinterpret_cast<char *>(data.data()), PAGE_SIZE);
+        assert(heapFile);
     }
 
-    void writePageData(PageId pageId, std::array<uint8_t, PAGE_SIZE> data){
+    void writePageData(PageId pageId, const std::array<uint8_t, PAGE_SIZE> &data){
         uint64_t offset = PAGE_SIZE * pageId.body;
         assert(offset <= std::numeric_limits<int64_t>::max());
         heapFile.seekg((int64_t) offset, std::ios::beg);
@@ -96,8 +97,9 @@ public:
     }
 
     PageId allocatePage(){
+        auto page_id = nextPageId;
         nextPageId++;
-        return PageId(nextPageId);
+        return PageId(page_id);
     }
 
     void sync(){
