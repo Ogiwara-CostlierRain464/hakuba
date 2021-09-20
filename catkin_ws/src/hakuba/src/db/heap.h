@@ -1,13 +1,16 @@
 #ifndef HAKUBA_HEAP_H
 #define HAKUBA_HEAP_H
 #include <cstddef>
+#include "layout_verified.h"
 
 struct alignas(8) HeapHeader{
   uint16_t numItems{};
   uint16_t freeSpaceOffset{};
 
-  HeapHeader(uint16_t num_slots,
-             uint16_t free_space_offset){}
+  HeapHeader(uint16_t num_items,
+             uint16_t free_space_offset)
+  : numItems(num_items),
+  freeSpaceOffset(free_space_offset){}
 };
 
 struct ItemId{
