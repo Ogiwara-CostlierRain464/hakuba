@@ -6,6 +6,8 @@
 #include "buffer.h"
 #include "slotted.h"
 #include "layout_verified.h"
+#include "index.h"
+#include "repo.h"
 
 
 // Index represented as linear list.
@@ -45,54 +47,6 @@
  *
  */
 
-struct LinkedListHeader{
-  PageId nextPageId{PageId::INVALID_PAGE_ID};
-};
-
-struct LinearListNode{
-  using Layout = LayoutVerified<LinkedListHeader>;
-  Layout header;
-  Slotted body;
-
-private:
-  // tmp constructor.
-  explicit LinearListNode(const std::pair<Layout, Layout::RefBytes> &tmp)
-  : header(tmp.first), body(Slotted(tmp.second))
-  {}
-public:
-  explicit LinearListNode(const Layout::RefBytes &page)
-  : LinearListNode(Layout::newFromPrefix(page)){}
-
-  explicit LinearListNode(Page &page):
-  LinearListNode(std::vector<std::reference_wrapper<uint8_t>>(page.begin(), page.end())){}
-
-  // Call this when created from new page.
-  void init(){
-    header.type->nextPageId = PageId::INVALID_PAGE_ID;
-  }
-
-  // node itself don't have any method!
-  // it is just a container
-  // how to handle search algorithm?
-  bool tryInsert(const Layout::Bytes &record){
-    // Handle it's capacity by itself.
-    // if capacity is over, notify insert has failed.
-    return body.tryPushBack(record);
-  }
-  // after call this function, you should write data into DiskMgr.
-
-  bool search(const std::function<bool(const Layout::RefBytes&)> &fn, Layout::RefBytes &out){
-    for(size_t i = 0; i < body.header.type->numSlots; i++){
-      auto slot = body.dataAt(i);
-      if(fn(slot)){
-        out = slot;
-        return true;
-      }
-    }
-    return false;
-  }
-};
-
 class Table{
 public:
   typedef std::vector<std::reference_wrapper<uint8_t>> RefBytes;
@@ -113,14 +67,7 @@ public:
   void insert(const Record &record){
     auto buffer = bufMgr.fetch_page(currentPageId);
     RefBytes ref(buffer->page.begin(), buffer->page.end());
-    // problem at here is how to init LinearListNode?
-    //
-    // To deal with this, we can use DDD persistence - entity separation.
-    // Entity should not about memory layout!
-    // Refactoring time!!!
-    // entity: LinkedListNode(Header, Slotted(Header, Body))
-    // repo: LinkedListNodeRepo, SlottedRepo
-    auto current_node = LinearListNode(ref);
+    auto current_node = IndexNodeRepo::fromPage(ref, false);
     auto result = current_node.tryInsert(record);
     if(result){
       buffer->setDirty();
@@ -129,9 +76,9 @@ public:
       // When current page id is filled,
       // then move to next page.
       auto new_buffer = bufMgr.createPage();
-      auto new_link = LinearListNode(new_buffer->page);
-      new_link.init();
-      current_node.header.type->nextPageId = new_buffer->pageId;
+      RefBytes new_ref(new_buffer->page.begin(), new_buffer->page.end());
+      auto new_node = IndexNodeRepo::fromPage(new_ref, true);
+      new_node.header->nextId = new_buffer->pageId;
       currentPageId = new_buffer->pageId;
       insert(record);
     }
@@ -143,16 +90,16 @@ public:
     for(;;){
       auto buffer = bufMgr.fetch_page(rootPageId);
       RefBytes ref(buffer->page.begin(), buffer->page.end());
-      auto node = LinearListNode(ref);
+      auto node = IndexNodeRepo::fromPage(ref, false);
       RefBytes result;
       bool found = node.search(fn, out);
       if(found){
         return true;
-      }else if(node.header.type->nextPageId != PageId::INVALID_PAGE_ID){
-        seek_page_id = node.header.type->nextPageId;
+      }else if(node.header->nextId != PageId::INVALID_PAGE_ID){
+        seek_page_id = node.header->nextId;
         continue;
       }else{
-        assert(node.header.type->nextPageId == PageId::INVALID_PAGE_ID);
+        assert(node.header->nextId == PageId::INVALID_PAGE_ID);
         return false;
       }
     }
