@@ -21,7 +21,9 @@
 #include "db/memcmpable.h"
 #include "db/table.h"
 #include "db/layout_verified.h"
-
+#include "db/heap.h"
+#include "db/index.h"
+#include "db/repo.h"
 
 using namespace std;
 using namespace ros;

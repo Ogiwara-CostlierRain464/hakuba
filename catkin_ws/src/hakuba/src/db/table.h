@@ -114,6 +114,7 @@ public:
     auto buffer = bufMgr.fetch_page(currentPageId);
     RefBytes ref(buffer->page.begin(), buffer->page.end());
     // problem at here is how to init LinearListNode?
+    //
     // To deal with this, we can use DDD persistence - entity separation.
     // Entity should not about memory layout!
     // Refactoring time!!!
