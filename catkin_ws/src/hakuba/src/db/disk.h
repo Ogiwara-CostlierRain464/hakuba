@@ -9,7 +9,8 @@
 
 namespace {
   struct PageId{
-    uint64_t body{};
+    // PageId is initialized as invalid id.
+    uint64_t body{std::numeric_limits<uint64_t>::max()};
 
     PageId() = default;
 
@@ -43,13 +44,14 @@ namespace std{
   };
 }
 
+// TODO: how to handle with large data such as 3D LiDAR? (= 3.5MB?)
 const uint64_t PAGE_SIZE = 4096;
 
 struct DiskManager{
     std::fstream heapFile{};
     uint64_t nextPageId{};
 
-    DiskManager(){}
+    DiskManager() = default;
 
 private:
     DiskManager(std::fstream &&heap_file, uint64_t next_page_id)
@@ -90,7 +92,7 @@ public:
         assert(offset <= std::numeric_limits<int64_t>::max());
         heapFile.seekg((int64_t) offset, std::ios::beg);
         heapFile.read(reinterpret_cast<char *>(data.data()), PAGE_SIZE);
-        assert(heapFile);
+        assert(heapFile.is_open());
     }
 
     void writePageData(PageId pageId, const std::array<uint8_t, PAGE_SIZE> &data){

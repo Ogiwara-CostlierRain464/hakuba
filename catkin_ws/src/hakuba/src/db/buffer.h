@@ -31,7 +31,7 @@ struct Buffer{
 };
 
 struct Frame{
-    uint64_t  usageCount{};
+    uint64_t usageCount{};
     std::shared_ptr<Buffer> buffer{std::make_shared<Buffer>()};
 
     Frame() = default;

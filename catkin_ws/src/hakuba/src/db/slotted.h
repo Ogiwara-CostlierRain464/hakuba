@@ -4,13 +4,16 @@
 #include "layout_verified.h"
 
 struct alignas(8) SlottedHeader{
-  uint16_t numSlots; // 2byte
-  uint16_t freeSpaceOffset; // 2byte
+  uint16_t numSlots{}; // 2byte
+  uint16_t freeSpaceOffset{}; // 2byte
 };
 
 struct Pointer{
   uint16_t offset;
   uint16_t len;
+
+  Pointer(uint16_t offset_, uint16_t len_)
+  : offset(offset_), len(len_){}
 
   // return range
   // TODO: replace with custom Iter base Range class
@@ -27,10 +30,16 @@ struct Slotted{
   Layout header;
   Layout::RefBytes body;
 
-  explicit Slotted(const Layout::RefBytes &bytes){
-    auto out = LayoutVerified<SlottedHeader>::newFromPrefix(bytes);
-    header = std::move(out.first);
-    body = std::move(out.second);
+  Slotted(const Layout::RefBytes &bytes){
+    auto layout = Layout::newFromPrefix(bytes);
+    header = layout.first;
+    body = layout.second;
+  }
+
+  // Call this when created from new page.
+  void init(){
+    header.type->numSlots = 0;
+    header.type->freeSpaceOffset = body.size();
   }
 
   size_t capacity() const{

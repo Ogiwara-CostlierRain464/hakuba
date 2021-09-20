@@ -46,7 +46,7 @@
  */
 
 struct LinkedListHeader{
-  PageId nextPageId;
+  PageId nextPageId{PageId::INVALID_PAGE_ID};
 };
 
 struct LinearListNode{
@@ -55,12 +55,21 @@ struct LinearListNode{
   Slotted body;
 
 private:
+  // tmp constructor.
   explicit LinearListNode(const std::pair<Layout, Layout::RefBytes> &tmp)
   : header(tmp.first), body(Slotted(tmp.second))
   {}
 public:
   explicit LinearListNode(const Layout::RefBytes &page)
   : LinearListNode(Layout::newFromPrefix(page)){}
+
+  explicit LinearListNode(Page &page):
+  LinearListNode(std::vector<std::reference_wrapper<uint8_t>>(page.begin(), page.end())){}
+
+  // Call this when created from new page.
+  void init(){
+    header.type->nextPageId = PageId::INVALID_PAGE_ID;
+  }
 
   // node itself don't have any method!
   // it is just a container
@@ -104,6 +113,12 @@ public:
   void insert(const Record &record){
     auto buffer = bufMgr.fetch_page(currentPageId);
     RefBytes ref(buffer->page.begin(), buffer->page.end());
+    // problem at here is how to init LinearListNode?
+    // To deal with this, we can use DDD persistence - entity separation.
+    // Entity should not about memory layout!
+    // Refactoring time!!!
+    // entity: LinkedListNode(Header, Slotted(Header, Body))
+    // repo: LinkedListNodeRepo, SlottedRepo
     auto current_node = LinearListNode(ref);
     auto result = current_node.tryInsert(record);
     if(result){
@@ -113,11 +128,10 @@ public:
       // When current page id is filled,
       // then move to next page.
       auto new_buffer = bufMgr.createPage();
-      auto new_page_id = new_buffer->pageId;
-      current_node.header.type->nextPageId = new_page_id;
-      currentPageId = new_page_id;
-      // or should we use goto?
-      // TODO: set next page id of new_buffer as INVALID_PAGE_ID
+      auto new_link = LinearListNode(new_buffer->page);
+      new_link.init();
+      current_node.header.type->nextPageId = new_buffer->pageId;
+      currentPageId = new_buffer->pageId;
       insert(record);
     }
   }

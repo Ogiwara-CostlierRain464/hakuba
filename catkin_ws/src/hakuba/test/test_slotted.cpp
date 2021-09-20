@@ -13,9 +13,9 @@ TEST_F(TestSlotted, test){
     std::reference_wrapper<uint8_t>>
   ref(page_data.begin(), page_data.end());
 
-  auto slotted = Slotted(ref);
-  slotted.header.type->freeSpaceOffset = slotted.body.size();
-  slotted.header.type->numSlots = 0;
+  Slotted slotted(ref);
+  slotted.init();
+
   std::vector<uint8_t> hello{'h', 'e', 'l', 'l', 'o'};
   std::vector<std::reference_wrapper<uint8_t>> hello_ref(
     hello.begin(), hello.end());

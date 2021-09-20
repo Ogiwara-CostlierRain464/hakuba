@@ -66,13 +66,14 @@ TEST_F(TestTable, table){
   {
     DiskManager disk;
     DiskManager::open("/tmp/test3.data", disk);
-    BufferPool pool(100);
+    // 4096byte
+    BufferPool pool(2);
     BufferPoolManager buf_mgr(std::move(disk),
                               std::move(pool));
 
     Table table(buf_mgr, PageId(0));
-    for(size_t i = 0; i < 410; i++){
-      std::vector<uint8_t> data(10,i+1);
+    for(size_t i = 0; i < 10; i++){
+      std::vector<uint8_t> data(100,i+1);
       table.insert(data);
     }
     // wrong id!
