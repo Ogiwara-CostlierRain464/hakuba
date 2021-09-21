@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <array>
+#include <cstdio>
 
 namespace {
   struct PageId{
@@ -52,70 +53,74 @@ struct DiskManager{
     uint64_t nextPageId{};
 
     DiskManager() = default;
+    DiskManager(DiskManager&& other) = default;
+    DiskManager& operator=(DiskManager&& other) = default;
+    DiskManager(const DiskManager &other) = delete;
+    DiskManager& operator=(const DiskManager &other) = delete;
 
 private:
     DiskManager(std::fstream &&heap_file, uint64_t next_page_id)
     : heapFile(std::move(heap_file)), nextPageId(next_page_id){}
 
 public:
-    static void create(std::fstream &&heap_file, DiskManager &out){
-        // getting file length
-        heap_file.seekg(0, std::ios::beg);
-        long begin = heap_file.tellg();
-        heap_file.seekg(0, std::ios::end);
-        long end = heap_file.tellg();
-        uint64_t next_page_id = (end-begin) / PAGE_SIZE;
-        // return to initial pos.
-        heap_file.seekg(0, std::ios::beg);
-        out = DiskManager(std::move(heap_file), next_page_id);
+  static DiskManager create(std::fstream &&heap_file){
+      // getting file length
+    heap_file.seekg(0, std::ios::beg);
+    long begin = heap_file.tellg();
+    heap_file.seekg(0, std::ios::end);
+    long end = heap_file.tellg();
+    uint64_t next_page_id = (end-begin) / PAGE_SIZE;
+    // return to initial pos.
+    heap_file.seekg(0, std::ios::beg);
+    return DiskManager(std::move(heap_file), next_page_id);
+  }
+
+  static DiskManager open(const std::string &heap_file_path){
+    // By default, C++ fstream creates file if not exists.
+    std::fstream heap_file;
+    heap_file.open(heap_file_path,
+                   std::ios::in | std::ios::out | std::ios::binary );
+
+    if(!heap_file.is_open()){
+      // file do not exist
+      heap_file.open(heap_file_path,
+                     std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc );
     }
 
-    static void open(const std::string &heap_file_path, DiskManager &out){
-        // By default, C++ fstream creates file if not exists.
-        std::fstream heap_file;
-        heap_file.open(heap_file_path,
-                       std::ios::in | std::ios::out | std::ios::binary );
+    assert(heap_file.is_open() && "Could not create disk file!");
 
-        if(!heap_file.is_open()){
-          // file do not exist
-          heap_file.open(heap_file_path,
-                         std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc );
-        }
+    return DiskManager::create(std::move(heap_file));
+  }
 
-        assert(heap_file.is_open() && "Could not create disk file!");
+  void readPageData(PageId pageId, std::array<uint8_t, PAGE_SIZE> &data){
+      uint64_t offset = PAGE_SIZE * pageId.body;
+      assert(offset <= std::numeric_limits<int64_t>::max());
+      heapFile.seekg((int64_t) offset, std::ios::beg);
+      heapFile.read(reinterpret_cast<char *>(data.data()), PAGE_SIZE);
+      assert(heapFile.is_open());
+  }
 
-        DiskManager::create(std::move(heap_file), out);
-    }
+  void writePageData(PageId pageId, const std::array<uint8_t, PAGE_SIZE> &data){
+      uint64_t offset = PAGE_SIZE * pageId.body;
+      assert(offset <= std::numeric_limits<int64_t>::max());
+      heapFile.seekg((int64_t) offset, std::ios::beg);
+      heapFile.write(reinterpret_cast<const char *>(data.data()), PAGE_SIZE);
+  }
 
-    void readPageData(PageId pageId, std::array<uint8_t, PAGE_SIZE> &data){
-        uint64_t offset = PAGE_SIZE * pageId.body;
-        assert(offset <= std::numeric_limits<int64_t>::max());
-        heapFile.seekg((int64_t) offset, std::ios::beg);
-        heapFile.read(reinterpret_cast<char *>(data.data()), PAGE_SIZE);
-        assert(heapFile.is_open());
-    }
+  PageId allocatePage(){
+      auto page_id = nextPageId;
+      nextPageId++;
+      return PageId(page_id);
+  }
 
-    void writePageData(PageId pageId, const std::array<uint8_t, PAGE_SIZE> &data){
-        uint64_t offset = PAGE_SIZE * pageId.body;
-        assert(offset <= std::numeric_limits<int64_t>::max());
-        heapFile.seekg((int64_t) offset, std::ios::beg);
-        heapFile.write(reinterpret_cast<const char *>(data.data()), PAGE_SIZE);
-    }
+  void sync(){
+      heapFile.flush();
+      heapFile.sync();
+  }
 
-    PageId allocatePage(){
-        auto page_id = nextPageId;
-        nextPageId++;
-        return PageId(page_id);
-    }
-
-    void sync(){
-        heapFile.flush();
-        heapFile.sync();
-    }
-
-    void drop(){
-        heapFile.close();
-    }
+  void drop(){
+      heapFile.close();
+  }
 };
 
 #endif //HAKUBA_DISK_H

@@ -7,8 +7,7 @@ using namespace std;
 struct DiskTest: public ::testing::Test{};
 
 TEST_F(DiskTest, test){
-    DiskManager disk;
-    DiskManager::open("/tmp/test.data", disk);
+    auto disk = DiskManager::open("/tmp/test.data");
     auto page_one = disk.allocatePage();
     std::array<uint8_t, PAGE_SIZE> data{1,2};
     disk.writePageData(page_one, data);
@@ -18,8 +17,7 @@ TEST_F(DiskTest, test){
     disk.sync();
     disk.drop();
 
-    DiskManager disk2;
-    DiskManager::open("/tmp/test.data", disk2);
+    auto disk2 = DiskManager::open("/tmp/test.data");
     std::array<uint8_t, PAGE_SIZE> buf{};
     disk2.readPageData(page_one, buf);
 

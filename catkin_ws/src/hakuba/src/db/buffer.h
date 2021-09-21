@@ -159,8 +159,10 @@ struct BufferPoolManager{
       auto &frame = pool[buffer_id];
       auto &page = frame.buffer->page;
       // Why not only dirty page?
-      disk.writePageData(page_id, page);
-      frame.buffer->isDirty = false;
+      if(frame.buffer->isDirty){
+        disk.writePageData(page_id, page);
+        frame.buffer->isDirty = false;
+      }
     }
     disk.sync();
   }

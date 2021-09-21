@@ -9,8 +9,7 @@ struct BufferTest: public ::testing::Test{};
 TEST_F(BufferTest, test){
   std::array<uint8_t, PAGE_SIZE> hello{1,2};
   std::array<uint8_t, PAGE_SIZE> world{3,4};
-  DiskManager disk;
-  DiskManager::open("/tmp/test2.data", disk);
+  auto disk = DiskManager::open("/tmp/test2.data");
   BufferPool pool(1);
   BufferPoolManager buf_mgr(std::move(disk), std::move(pool));
 

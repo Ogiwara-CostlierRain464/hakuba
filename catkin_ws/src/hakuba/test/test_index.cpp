@@ -12,8 +12,7 @@ TEST_F(TestIndex, node){
   PageId page_id;
 
   {
-    DiskManager disk;
-    DiskManager::open("/tmp/test3.data", disk);
+    auto disk = DiskManager::open("/tmp/test3.data");
     BufferPool pool(10);
     BufferPoolManager buf_mgr(std::move(disk),
                               std::move(pool));
@@ -36,8 +35,7 @@ TEST_F(TestIndex, node){
   }
 
   {
-    DiskManager disk;
-    DiskManager::open("/tmp/test3.data", disk);
+    auto disk = DiskManager::open("/tmp/test3.data");
     BufferPool pool(10);
     BufferPoolManager buf_mgr(std::move(disk),
                               std::move(pool));

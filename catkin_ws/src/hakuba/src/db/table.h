@@ -60,6 +60,7 @@ public:
   PageId currentPageId{rootPageId};
   std::shared_ptr<Buffer> currentPage{nullptr};
 
+  // Do copy!
   Table(const Table &other) = default;
 
 private:
