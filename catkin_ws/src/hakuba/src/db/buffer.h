@@ -17,6 +17,10 @@ struct BufferId{
 
 typedef std::array<uint8_t, PAGE_SIZE> Page;
 
+static std::vector<std::reference_wrapper<uint8_t>> get_page_ref(Page &page){
+  return std::vector<std::reference_wrapper<uint8_t>>(page.begin(), page.end());
+}
+
 struct Buffer{
     PageId pageId{};
     Page page{};
@@ -66,6 +70,7 @@ struct BufferPool{
         victim_id = nextVictimId;
         break;
       }
+      // no place except here uses this buffer!
       if(frame.buffer.use_count() == 1){
         frame.usageCount--;
         consecutive_pinned = 0;

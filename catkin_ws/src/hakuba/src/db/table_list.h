@@ -1,17 +1,15 @@
-#ifndef HAKUBA_DATABASE_HEADER_H
-#define HAKUBA_DATABASE_HEADER_H
+#ifndef HAKUBA_TABLE_LIST_H
+#define HAKUBA_TABLE_LIST_H
 
 #include "disk.h"
 #include "layout_verified.h"
 
+/**
+ * This header should be initialized as 0.
+ */
 struct TableListHeader{
-  uint16_t numTables{};
-  uint16_t freeSpaceOffset{};
-
-  TableListHeader(uint16_t num_tables,
-                  uint16_t free_space_offset)
-  : numTables(num_tables),
-  freeSpaceOffset(free_space_offset){}
+  uint16_t numTables{0};
+  uint16_t occupySpaceOffset{0};
 };
 
 struct TableDescriber{
@@ -22,6 +20,7 @@ struct TableDescriber{
 };
 
 class TableList{
+public:
   typedef std::vector<std::reference_wrapper<uint8_t>> RefBytes;
   TableListHeader *header;
   RefBytes body;
@@ -32,7 +31,7 @@ class TableList{
   TableList(const TableList &other) = default;
 
   size_t freeSpace() const{
-    return header->freeSpaceOffset;
+    return body.size() - header->occupySpaceOffset;
   }
 
   LayoutVerified<TableDescriber[]> describerArray(){
@@ -46,7 +45,7 @@ class TableList{
       return false;
     }
     auto next_describer_id = header->numTables;
-    header->freeSpaceOffset -= sizeof(TableListHeader);
+    header->occupySpaceOffset += sizeof(TableListHeader);
     header->numTables++;
     TableDescriber &describer = (*(describerArray().type))[next_describer_id];
     describer.rootPageId = root_page_id;
@@ -55,4 +54,4 @@ class TableList{
 
 };
 
-#endif //HAKUBA_DATABASE_HEADER_H
+#endif //HAKUBA_TABLE_LIST_H

@@ -4,15 +4,15 @@
 #include "buffer.h"
 #include "index.h"
 #include "layout_verified.h"
+#include "table_list.h"
 
 class HeapRepo{
 public:
   using RefBytes = std::vector<std::reference_wrapper<uint8_t>>;
 
-  static Heap fromPage(RefBytes &page, bool init){
+  static Heap fromPage(const RefBytes &page, bool init){
     using Layout = LayoutVerified<Heap::Header>;
-    Layout::RefBytes ref(page.begin(), page.end());
-    auto layout = Layout::newFromPrefix(ref);
+    auto layout = Layout::newFromPrefix(page);
     auto tmp = Heap(layout.first.type, layout.second);
 
     if(init){
@@ -33,7 +33,7 @@ public:
    * @param init
    * @return
    */
-  static IndexNode fromPage(RefBytes &page, bool init){
+  static IndexNode fromPage(const RefBytes &page, bool init){
     using Layout = LayoutVerified<IndexNode::Header>;
     auto layout = Layout::newFromPrefix(page);
     auto heap = HeapRepo::fromPage(layout.second, init);
@@ -44,6 +44,17 @@ public:
     }
 
     return tmp;
+  }
+};
+
+class TableListRepo{
+public:
+  using RefBytes = std::vector<std::reference_wrapper<uint8_t>>;
+
+  static TableList fromPage(const RefBytes &page){
+    using Layout = LayoutVerified<TableListHeader>;
+    auto layout = Layout::newFromPrefix(page);
+    return TableList(layout.first.type, layout.second);
   }
 };
 

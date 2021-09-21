@@ -55,31 +55,54 @@ public:
   // have BufferPoolMgr, and top PageId
   // constitute from nodes, and when one node filled,
   // then create new page and node.
-  BufferPoolManager &bufMgr;
+  std::reference_wrapper<BufferPoolManager> bufMgr;
   PageId rootPageId;
   PageId currentPageId{rootPageId};
+  std::shared_ptr<Buffer> currentPage{nullptr};
 
+  Table(const Table &other) = default;
+
+private:
   explicit Table(BufferPoolManager &buf_mgr,
         PageId root_page_id)
   : bufMgr(buf_mgr), rootPageId(root_page_id)
   {}
 
+public:
+  static Table fromNew(BufferPoolManager &buf_mgr,
+                      std::shared_ptr<Buffer> &buffer){
+    // Do init
+    auto root_index =
+      IndexNodeRepo::fromPage(get_page_ref(buffer->page), true);
+    Table table(buf_mgr, buffer->pageId);
+    table.currentPage = buffer;
+    return table;
+  }
+
+  static Table fromExisting(BufferPoolManager &buf_mgr,
+                           PageId root_page_id){
+    return Table(buf_mgr, root_page_id);
+  }
+
   void insert(const Record &record){
-    auto buffer = bufMgr.fetch_page(currentPageId);
-    RefBytes ref(buffer->page.begin(), buffer->page.end());
-    auto current_node = IndexNodeRepo::fromPage(ref, false);
+    if(!currentPage){
+      currentPage = bufMgr.get().fetch_page(currentPageId);
+    }
+    auto current_node =
+      IndexNodeRepo::fromPage(get_page_ref(currentPage->page), false);
     auto result = current_node.tryInsert(record);
     if(result){
-      buffer->setDirty();
+      currentPage->setDirty();
       //bufMgr.flush();
     }else{
       // When current page id is filled,
       // then move to next page.
-      auto new_buffer = bufMgr.createPage();
+      auto new_buffer = bufMgr.get().createPage();
       RefBytes new_ref(new_buffer->page.begin(), new_buffer->page.end());
       auto new_node = IndexNodeRepo::fromPage(new_ref, true);
       new_node.header->nextId = new_buffer->pageId;
       currentPageId = new_buffer->pageId;
+      currentPage = new_buffer;
       insert(record);
     }
   }
@@ -88,7 +111,7 @@ public:
     // search from root page. when not found within
     PageId seek_page_id = rootPageId;
     for(;;){
-      auto buffer = bufMgr.fetch_page(rootPageId);
+      auto buffer = bufMgr.get().fetch_page(rootPageId);
       RefBytes ref(buffer->page.begin(), buffer->page.end());
       auto node = IndexNodeRepo::fromPage(ref, false);
       RefBytes result;

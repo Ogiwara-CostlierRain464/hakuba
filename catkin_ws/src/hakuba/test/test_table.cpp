@@ -5,6 +5,7 @@
 #include "../src/db/disk.h"
 #include "../src/db/buffer.h"
 #include "../src/db/table.h"
+#include "../src/db/table_list.h"
 
 
 using namespace std;
@@ -12,22 +13,21 @@ using namespace std;
 struct TestTable: public ::testing::Test{};
 
 TEST_F(TestTable, table){
-
-  PageId last_page_id;
-  {
-    DiskManager disk;
-    DiskManager::open("/tmp/test3.data", disk);
-    // 4096byte
-    BufferPool pool(2);
-    BufferPoolManager buf_mgr(std::move(disk),
-                              std::move(pool));
-
-    Table table(buf_mgr, PageId(0));
-    for(size_t i = 0; i < 90; i++){
-      std::vector<uint8_t> data(100,i+1);
-      table.insert(data);
-    }
-    // wrong id!
-    last_page_id = table.currentPageId;
+  DiskManager disk;
+  DiskManager::open("/tmp/db.data", disk);
+  BufferPool pool(2);
+  BufferPoolManager buf_mgr(std::move(disk),
+                            std::move(pool));
+  auto buffer = buf_mgr.createPage();
+  auto table_list =
+    TableListRepo::fromPage(get_page_ref(buffer->page));
+  ASSERT_TRUE(table_list.tryPushBack(PageId(1)));
+  auto buffer1 = buf_mgr.createPage();
+  auto table = Table::fromNew(buf_mgr, buffer1);
+  for(size_t i = 0; i < 90; i++){
+    std::vector<uint8_t> data(100,i+1);
+    table.insert(data);
   }
+
+  EXPECT_EQ(table.currentPageId, PageId(2));
 }
