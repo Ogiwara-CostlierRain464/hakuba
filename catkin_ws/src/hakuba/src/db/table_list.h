@@ -28,6 +28,7 @@ public:
   TableList(TableListHeader *header_, RefBytes body_)
   : header(header_), body(body_){}
 
+  // Do copy!
   TableList(const TableList &other) = default;
 
   size_t freeSpace() const{
@@ -40,7 +41,7 @@ public:
     return LayoutVerified<TableDescriber[]>::newSlice(slice);
   }
 
-  bool tryPushBack(PageId root_page_id){
+  bool tryPushBack(PageId root_page_id, size_t &out_table_id){
     if(freeSpace() < sizeof(TableListHeader)){
       return false;
     }
@@ -49,7 +50,14 @@ public:
     header->numTables++;
     TableDescriber &describer = (*(describerArray().type))[next_describer_id];
     describer.rootPageId = root_page_id;
+    out_table_id = next_describer_id;
     return true;
+  }
+
+  PageId tableRootPageIdAt(size_t table_id){
+    assert(table_id < header->numTables && "Table Id exceeded!");
+    TableDescriber &describer = (*(describerArray().type))[table_id];
+    return describer.rootPageId;
   }
 
 };

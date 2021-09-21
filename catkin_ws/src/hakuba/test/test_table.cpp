@@ -21,7 +21,9 @@ TEST_F(TestTable, table){
     auto buffer = buf_mgr.createPage();
     auto table_list =
       TableListRepo::fromPage(get_page_ref(buffer->page));
-    ASSERT_TRUE(table_list.tryPushBack(PageId(1)));
+    size_t table_id;
+    ASSERT_TRUE(table_list.tryPushBack(PageId(1), table_id));
+    ASSERT_EQ(table_id, 0);
     auto buffer1 = buf_mgr.createPage();
     auto table = Table::fromNew(buf_mgr, buffer1);
     for(size_t i = 0; i < 40; i++){

@@ -24,6 +24,7 @@
 #include "db/heap.h"
 #include "db/index.h"
 #include "db/repo.h"
+#include "db/db.h"
 
 using namespace std;
 using namespace ros;

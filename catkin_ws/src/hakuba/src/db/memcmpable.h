@@ -11,11 +11,11 @@
 namespace memcmpable {
   const size_t ESCAPE_LENGTH = 9;
 
-  size_t encoded_size(size_t len){
+  static size_t encoded_size(size_t len){
     return (len + (ESCAPE_LENGTH - 1)) / (ESCAPE_LENGTH - 1) * ESCAPE_LENGTH;
   }
 
-  void encode(const uint8_t src[], size_t len, std::vector<uint8_t> &dst){
+  static void encode(const uint8_t src[], size_t len, std::vector<uint8_t> &dst){
     for(;;){
       auto copy_len = std::min(ESCAPE_LENGTH-1, len);
 //    dst = std::vector<uint8_t>(src, src+copy_len-1);
@@ -35,7 +35,7 @@ namespace memcmpable {
     }
   }
 
-  void decode(uint8_t src[], size_t &src_len, std::vector<uint8_t> &dst){
+  static void decode(uint8_t src[], size_t &src_len, std::vector<uint8_t> &dst){
     for(;;){
       assert(src_len >= ESCAPE_LENGTH);
       uint8_t extra = src[ESCAPE_LENGTH-1];

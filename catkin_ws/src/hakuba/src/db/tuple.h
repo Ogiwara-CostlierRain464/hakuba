@@ -6,7 +6,7 @@
 #include "memcmpable.h"
 
 namespace tuple{
-  void encode(std::vector<std::vector<uint8_t>> &elems,
+  static void encode(std::vector<std::vector<uint8_t>> &elems,
               std::vector<uint8_t> &bytes){
     for(auto &elem: elems){
       auto len = memcmpable::encoded_size(elem.size());
@@ -15,11 +15,11 @@ namespace tuple{
     }
   }
 
-  void decode(const std::vector<uint8_t> &bytes,
+  static void decode(const std::vector<uint8_t> &bytes,
               std::vector<std::vector<uint8_t>> &elems){
     std::vector<uint8_t> rest = bytes;
     size_t rest_len = rest.size();
-    while (not rest.empty()){
+    while (rest_len != 0){
       std::vector<uint8_t> elem{};
       memcmpable::decode(rest.data(), rest_len, elem);
       elems.push_back(elem);
