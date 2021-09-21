@@ -50,11 +50,8 @@ TEST_F(DBTest, test){
     uint32_t serial_size = ser::serializationLength(point);
     ser::IStream stream(bytes[1].data(), serial_size);
     ser::deserialize(stream, point);
-
     auto time = *reinterpret_cast<double*>(bytes[0].data());
-
     return (point.y == 1 and point.z == 2);
-
   }, out);
 
   ASSERT_TRUE(found);
