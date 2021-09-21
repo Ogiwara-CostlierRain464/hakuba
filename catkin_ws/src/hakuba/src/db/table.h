@@ -4,7 +4,6 @@
 #include <functional>
 #include "disk.h"
 #include "buffer.h"
-#include "slotted.h"
 #include "layout_verified.h"
 #include "index.h"
 #include "repo.h"
