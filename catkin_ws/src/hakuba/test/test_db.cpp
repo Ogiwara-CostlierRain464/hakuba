@@ -2,8 +2,10 @@
 #include <gtest/gtest.h>
 #include <ros/serialization.h>
 #include <geometry_msgs/Pose.h>
+#include <ros/node_handle.h>
 #include "../src/db/db.h"
 #include "../src/db/tuple.h"
+#include "../src/db/timeseries_database.h"
 
 using namespace std;
 namespace ser = ros::serialization;
@@ -57,5 +59,34 @@ TEST_F(DBTest, test){
   ASSERT_TRUE(found);
 
 
+  db.erase();
+}
+
+TEST_F(DBTest, test2){
+
+  ros::NodeHandle nh_;
+  {
+    TimeSeriesDB db("/tmp/time.data");
+    auto pair =
+      db.createTable<geometry_msgs::Point>();
+    auto table = pair.first;
+    ASSERT_EQ(pair.second, 0);
+
+    geometry_msgs::Point point;
+    point.x = 1; point.y = 2; point.z = 3;
+    table.insert(ros::Time::now(), point);
+  }
+
+  TimeSeriesDB db("/tmp/time.data");
+  auto table = db.loadTable<geometry_msgs::Point>(0);
+  ros::Time t;
+  geometry_msgs::Point p;
+  bool found = table.search([&](
+    const ros::Time &time,
+    const geometry_msgs::Point &point){
+    return point.x == 1;
+    },t, p);
+
+  ASSERT_TRUE(found);
   db.erase();
 }

@@ -9,7 +9,6 @@
 #include <laser_geometry/laser_geometry.h>
 #include <random>
 #include "beego_controller.h"
-#include "db.h"
 #include "demo.h"
 #include <ecl/threads.hpp>
 #include <ctime>
@@ -25,6 +24,7 @@
 #include "db/index.h"
 #include "db/repo.h"
 #include "db/db.h"
+#include "db/timeseries_database.h"
 
 using namespace std;
 using namespace ros;
@@ -133,6 +133,10 @@ void demo(BeegoController &b){
         ros::spinOnce();
         loop_rate.sleep();
     }
+}
+
+void time_series_database(){
+
 }
 
 int main(int argc, char **argv)

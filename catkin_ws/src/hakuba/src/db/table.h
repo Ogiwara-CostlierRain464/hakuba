@@ -2,6 +2,7 @@
 #define HAKUBA_TABLE_H
 
 #include <functional>
+#include <iterator>
 #include "disk.h"
 #include "buffer.h"
 #include "layout_verified.h"
@@ -46,7 +47,34 @@
  *
  */
 
+class Table;
+
+class TableIterator: public std::iterator<std::input_iterator_tag,
+  std::vector<std::reference_wrapper<uint8_t>>>{
+  friend Table;
+private:
+  PageId seekPageId;
+  std::shared_ptr<Buffer> seekPageBuffer{nullptr};
+  size_t itemIdIndex;
+  Table* table;
+
+  TableIterator();
+
+  TableIterator(Table* table,
+                PageId seek_page_id,
+                size_t item_id_index);
+
+public:
+  TableIterator(const TableIterator& other);
+
+  TableIterator& operator++();
+  std::vector<std::reference_wrapper<uint8_t>> operator*();
+  bool operator!=(const TableIterator& other);
+  bool operator==(const TableIterator& other);
+};
+
 class Table{
+  friend TableIterator;
 public:
   typedef std::vector<std::reference_wrapper<uint8_t>> RefBytes;
   typedef std::vector<uint8_t> Record;
@@ -111,7 +139,7 @@ public:
     // search from root page. when not found within
     PageId seek_page_id = rootPageId;
     for(;;){
-      auto buffer = bufMgr.get().fetch_page(rootPageId);
+      auto buffer = bufMgr.get().fetch_page(seek_page_id);
       RefBytes ref(buffer->page.begin(), buffer->page.end());
       auto node = IndexNodeRepo::fromPage(ref, false);
       RefBytes result;
@@ -127,7 +155,64 @@ public:
       }
     }
   }
+
+  TableIterator begin(){
+    return TableIterator(this, rootPageId, 0);
+  }
+
+  TableIterator end(){
+    return TableIterator();
+  }
 };
+
+TableIterator::TableIterator()
+  : table(nullptr),
+  seekPageId(PageId::INVALID_PAGE_ID), itemIdIndex(0){}
+
+TableIterator::TableIterator(Table* table,
+                PageId seek_page_id,
+                size_t item_id_index)
+  : table(table),
+  seekPageId(seek_page_id) , itemIdIndex(item_id_index){}
+
+TableIterator::TableIterator(const TableIterator& other)
+  =default;
+
+TableIterator& TableIterator::operator++(){
+  auto node =
+    IndexNodeRepo::fromPage(get_page_ref(seekPageBuffer->page), false);
+
+  itemIdIndex++;
+  if(itemIdIndex == node.body.header->numItems){
+    seekPageBuffer = nullptr;
+    seekPageId = node.header->nextId;
+    itemIdIndex = 0;
+  }
+  return *this;
+}
+
+Table::RefBytes TableIterator::operator*(){
+  if(!table){
+    return {};
+  }
+  if(!seekPageBuffer){
+    seekPageBuffer = table->bufMgr.get().fetch_page(seekPageId);
+  }
+  auto node =
+    IndexNodeRepo::fromPage(get_page_ref(seekPageBuffer->page), false);
+  assert(itemIdIndex < node.body.header->numItems);
+  return node.body.itemAt(itemIdIndex);
+}
+
+bool TableIterator::operator!=(const TableIterator& other){
+  return table != other.table
+      or seekPageId != other.seekPageId
+      or itemIdIndex != other.itemIdIndex;
+}
+
+bool TableIterator::operator==(const TableIterator& other){
+  return !this->operator!=(other);
+}
 
 
 

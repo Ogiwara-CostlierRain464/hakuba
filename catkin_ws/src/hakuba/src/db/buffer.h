@@ -105,6 +105,8 @@ struct BufferPoolManager{
   disk(std::move(disk_)),
   pool(std::move(pool_)){}
 
+  BufferPoolManager(BufferPoolManager && other) = default;
+
   std::shared_ptr<Buffer> fetch_page(PageId page_Id){
     if(pageTable.find(page_Id) != pageTable.end()){
       BufferId buffer_Id = pageTable.at(page_Id);

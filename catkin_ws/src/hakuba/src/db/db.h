@@ -21,8 +21,11 @@ public:
     {}
 
   ~DB(){
+    // Flush to non-volatile memory when this instance removed.
     bufMgr.flush();
   }
+
+  DB(DB&& other) = default;
 
   Table loadTable(size_t table_id){
     auto root_page_id = tableList.tableRootPageIdAt(table_id);
@@ -42,7 +45,6 @@ public:
     std::ofstream ofs;
     ofs.open(path, std::ofstream::out | std::ofstream::trunc);
     ofs.close();
-    exit(0);
   }
 
 private:

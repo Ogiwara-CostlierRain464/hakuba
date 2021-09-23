@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <ecl/threads.hpp>
 #include <functional>
+#include <ros/init.h>
 #include "../src/sql.h"
 
 using namespace std;
@@ -47,5 +48,6 @@ TEST_F(Unit, sql){
 
 int main(int argc, char **argv){
   ::testing::InitGoogleTest(&argc, argv);
+  ros::init(argc, argv, "test_hakuba");
   return RUN_ALL_TESTS();
 }
