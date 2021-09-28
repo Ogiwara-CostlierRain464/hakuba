@@ -50,3 +50,29 @@ TEST_F(TestTable, table){
   ofs.open("/tmp/db.data", std::ofstream::out | std::ofstream::trunc);
   ofs.close();
 }
+
+TEST_F(TestTable, iter){
+  DiskManager disk = DiskManager::open("/tmp/iter.data");
+  BufferPool pool(2);
+  BufferPoolManager buf_mgr(std::move(disk),
+                            std::move(pool));
+  auto buffer1 = buf_mgr.createPage();
+  ASSERT_EQ(buffer1->pageId, PageId(0));
+  auto table = Table::fromNew(buf_mgr, buffer1);
+  for(size_t i = 0; i < 80; i++){
+    std::vector<uint8_t> data(100,i+1);
+    table.insert(data);
+  }
+
+  EXPECT_EQ(table.currentPageId, PageId(1));
+
+  for(auto iter = table.begin(); iter != table.end(); ++iter){
+    auto buff = *iter;
+    cout << buff.size() << endl;
+  }
+
+  // clear file
+  std::ofstream ofs;
+  ofs.open("/tmp/iter.data", std::ofstream::out | std::ofstream::trunc);
+  ofs.close();
+}

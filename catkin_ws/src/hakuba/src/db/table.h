@@ -62,7 +62,10 @@ private:
 
   TableIterator(Table* table,
                 PageId seek_page_id,
-                size_t item_id_index);
+                size_t item_id_index)
+  : table(table),
+    seekPageId(seek_page_id) , itemIdIndex(item_id_index){}
+
 
 public:
   TableIterator(const TableIterator& other);
@@ -164,55 +167,6 @@ public:
     return TableIterator();
   }
 };
-
-TableIterator::TableIterator()
-  : table(nullptr),
-  seekPageId(PageId::INVALID_PAGE_ID), itemIdIndex(0){}
-
-TableIterator::TableIterator(Table* table,
-                PageId seek_page_id,
-                size_t item_id_index)
-  : table(table),
-  seekPageId(seek_page_id) , itemIdIndex(item_id_index){}
-
-TableIterator::TableIterator(const TableIterator& other)
-  =default;
-
-TableIterator& TableIterator::operator++(){
-  auto node =
-    IndexNodeRepo::fromPage(get_page_ref(seekPageBuffer->page), false);
-
-  itemIdIndex++;
-  if(itemIdIndex == node.body.header->numItems){
-    seekPageBuffer = nullptr;
-    seekPageId = node.header->nextId;
-    itemIdIndex = 0;
-  }
-  return *this;
-}
-
-Table::RefBytes TableIterator::operator*(){
-  if(!table){
-    return {};
-  }
-  if(!seekPageBuffer){
-    seekPageBuffer = table->bufMgr.get().fetch_page(seekPageId);
-  }
-  auto node =
-    IndexNodeRepo::fromPage(get_page_ref(seekPageBuffer->page), false);
-  assert(itemIdIndex < node.body.header->numItems);
-  return node.body.itemAt(itemIdIndex);
-}
-
-bool TableIterator::operator!=(const TableIterator& other){
-  return table != other.table
-      or seekPageId != other.seekPageId
-      or itemIdIndex != other.itemIdIndex;
-}
-
-bool TableIterator::operator==(const TableIterator& other){
-  return !this->operator!=(other);
-}
 
 
 

@@ -63,7 +63,6 @@ TEST_F(DBTest, test){
 }
 
 TEST_F(DBTest, test2){
-
   ros::NodeHandle nh_;
   {
     TimeSeriesDB db("/tmp/time.data");
@@ -86,6 +85,41 @@ TEST_F(DBTest, test2){
     const geometry_msgs::Point &point){
     return point.x == 1;
     },t, p);
+
+  ASSERT_TRUE(found);
+  db.erase();
+}
+
+TEST_F(DBTest, insert_many){
+  ros::NodeHandle nh_;
+  {
+    TimeSeriesDB db("/tmp/many.data");
+    auto pair =
+      db.createTable<geometry_msgs::Point>();
+    auto table = pair.first;
+    ASSERT_EQ(pair.second, 0);
+
+    for(size_t i = 0; i < 100'000; i++){
+      geometry_msgs::Point point;
+      point.x = i; point.y = 2 * i; point.z = 3 * i;
+      table.insert(ros::Time::now(), point);
+    }
+  }
+
+  // insert failed!
+  // - each item id are broken.
+  // - cannot move to next page.
+  // - couldn't connect to next page.
+
+  TimeSeriesDB db("/tmp/many.data");
+  auto table = db.loadTable<geometry_msgs::Point>(0);
+  ros::Time t;
+  geometry_msgs::Point p;
+  bool found = table.search([&](
+    const ros::Time &time,
+    const geometry_msgs::Point &point){
+    return point.x == 5000;
+  },t, p);
 
   ASSERT_TRUE(found);
   db.erase();

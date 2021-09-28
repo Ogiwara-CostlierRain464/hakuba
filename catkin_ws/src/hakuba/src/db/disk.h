@@ -2,6 +2,7 @@
 #define HAKUBA_DISK_H
 
 #include <cstddef>
+#include <cassert>
 #include <limits>
 #include <fstream>
 #include <iostream>

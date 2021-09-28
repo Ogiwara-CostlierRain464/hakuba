@@ -58,6 +58,8 @@ struct Heap{
 
   RefBytes itemAt(ItemId itemId){
     auto range = itemId.range();
+    // range: 31730, 31730+24914
+    // how this is happening?
     return RefBytes(
       body.begin() + range.first,
       body.begin() + range.second
