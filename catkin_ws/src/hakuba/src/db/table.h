@@ -68,6 +68,10 @@ private:
 
 
 public:
+  static TableIterator end(){
+    return TableIterator();
+  }
+
   TableIterator(const TableIterator& other);
 
   TableIterator& operator++();

@@ -7,6 +7,31 @@
 #include "tuple.h"
 
 template<class T>
+class TimeSeriesTable;
+
+template<class T>
+class TimeSeriesTableIterator: public std::iterator<std::input_iterator_tag,
+  std::pair<ros::Time,T>>{
+  friend TimeSeriesTable<T>;
+
+private:
+  TableIterator iterator{TableIterator::end()};
+
+  TimeSeriesTableIterator();
+  TimeSeriesTableIterator(const TableIterator &iter);
+  TimeSeriesTableIterator(const TimeSeriesTableIterator<T> &other);
+
+public:
+  static TimeSeriesTableIterator end(){
+    return TimeSeriesTableIterator<T>();
+  }
+  TimeSeriesTableIterator& operator++();
+  std::pair<ros::Time,T> operator*();
+  bool operator!=(const TimeSeriesTableIterator<T> &other);
+  bool operator==(const TimeSeriesTableIterator<T> &other);
+};
+
+template<class T>
 class TimeSeriesTable{
 public:
   explicit TimeSeriesTable(const Table &table)
@@ -74,9 +99,12 @@ public:
     }
   }
 
-  // Return iter of data items in this
-  void iter(const ros::Time &from){
+  TimeSeriesTableIterator<T> begin(){
+    return TimeSeriesTableIterator<T>(table.begin());
+  }
 
+  TimeSeriesTableIterator<T> end(){
+    return TimeSeriesTableIterator<T>();
   }
 
 private:

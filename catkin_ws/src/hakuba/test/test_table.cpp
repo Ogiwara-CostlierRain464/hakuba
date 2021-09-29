@@ -66,9 +66,7 @@ TEST_F(TestTable, iter){
 
   EXPECT_EQ(table.currentPageId, PageId(2));
 
-  for(auto iter = table.begin();
-  iter != table.end();
-  ++iter){
+  for(auto iter = table.begin(); iter != table.end(); ++iter){
     auto buff = *iter;
     cout << buff.size() << endl;
   }
