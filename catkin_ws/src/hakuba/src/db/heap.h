@@ -44,7 +44,7 @@ struct Heap{
   }
 
   size_t freeSpace() const{
-    return header->freeSpaceOffset;
+    return header->freeSpaceOffset - itemIdArraySize();
   }
 
   size_t itemIdArraySize() const{
@@ -67,8 +67,12 @@ struct Heap{
   }
 
   RefBytes itemAt(size_t index){
+    return itemAt(itemIdAt(index));
+  }
+
+  ItemId itemIdAt(size_t index){
     auto itemIds = itemIdArray().type;
-    return itemAt((*(itemIds))[index]);
+    return (*(itemIds))[index];
   }
 
 
@@ -82,6 +86,11 @@ struct Heap{
     if(freeSpace() < sizeof(ItemId) + data.size()){
       return false;
     }
+    if(freeSpace() == 12){
+      auto a = 1+1;
+      assert(true);
+    }
+
     auto next_item_id_index = itemCounts();
     header->freeSpaceOffset -= data.size();
     header->numItems += 1;

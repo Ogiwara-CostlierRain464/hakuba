@@ -101,9 +101,11 @@ TEST_F(DBTest, insert_many){
 
     for(size_t i = 0; i < 100'000; i++){
       geometry_msgs::Point point;
-      point.x = i; point.y = 2 * i; point.z = 3 * i;
+      point.x = (double) i; point.y = (double) (2 * i); point.z = (double)  (3 * i);
       table.insert(ros::Time::now(), point);
     }
+    auto t = db.loadTable<geometry_msgs::Point>(0);
+    ASSERT_TRUE(true);
   }
 
   // insert failed!

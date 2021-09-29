@@ -7,7 +7,6 @@
 
 struct IndexNodeHeader{
   // Page Id as identity.
-  PageId id{};
   PageId nextId{PageId::INVALID_PAGE_ID};
 
   IndexNodeHeader() = default;

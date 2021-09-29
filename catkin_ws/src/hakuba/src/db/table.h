@@ -131,7 +131,7 @@ public:
       auto new_buffer = bufMgr.get().createPage();
       RefBytes new_ref(new_buffer->page.begin(), new_buffer->page.end());
       auto new_node = IndexNodeRepo::fromPage(new_ref, true);
-      new_node.header->nextId = new_buffer->pageId;
+      current_node.header->nextId = new_buffer->pageId;
       currentPageId = new_buffer->pageId;
       currentPage = new_buffer;
       insert(record);
