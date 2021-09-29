@@ -53,7 +53,7 @@ TEST_F(TestTable, table){
 
 TEST_F(TestTable, iter){
   DiskManager disk = DiskManager::open("/tmp/iter.data");
-  BufferPool pool(2);
+  BufferPool pool(3);
   BufferPoolManager buf_mgr(std::move(disk),
                             std::move(pool));
   auto buffer1 = buf_mgr.createPage();
@@ -64,9 +64,11 @@ TEST_F(TestTable, iter){
     table.insert(data);
   }
 
-  EXPECT_EQ(table.currentPageId, PageId(1));
+  EXPECT_EQ(table.currentPageId, PageId(2));
 
-  for(auto iter = table.begin(); iter != table.end(); ++iter){
+  for(auto iter = table.begin();
+  iter != table.end();
+  ++iter){
     auto buff = *iter;
     cout << buff.size() << endl;
   }
