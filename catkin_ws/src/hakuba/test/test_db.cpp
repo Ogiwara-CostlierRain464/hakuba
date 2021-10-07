@@ -6,6 +6,7 @@
 #include "../src/db/db.h"
 #include "../src/db/tuple.h"
 #include "../src/db/timeseries_database.h"
+#include "../src/db/time_series_table_iter.cpp"
 
 using namespace std;
 namespace ser = ros::serialization;
@@ -108,11 +109,6 @@ TEST_F(DBTest, insert_many){
     ASSERT_TRUE(true);
   }
 
-  // insert failed!
-  // - each item id are broken.
-  // - cannot move to next page.
-  // - couldn't connect to next page.
-
   TimeSeriesDB db("/tmp/many.data");
   auto table = db.loadTable<geometry_msgs::Point>(0);
   ros::Time t;
@@ -124,5 +120,32 @@ TEST_F(DBTest, insert_many){
   },t, p);
 
   ASSERT_TRUE(found);
+  db.erase();
+}
+
+TEST_F(DBTest, time_iter){
+  ros::NodeHandle nh_;
+  {
+    TimeSeriesDB db("/tmp/time_iter.data");
+    auto pair =
+      db.createTable<geometry_msgs::Point>();
+    auto table = pair.first;
+    ASSERT_EQ(pair.second, 0);
+
+    for(size_t i = 0; i < 10'000; i++){
+      geometry_msgs::Point point;
+      point.x = (double) i; point.y = (double) (2 * i); point.z = (double)  (3 * i);
+      table.insert(ros::Time::now(), point);
+    }
+  }
+
+  TimeSeriesDB db("/tmp/time_iter.data");
+  auto table = db.loadTable<geometry_msgs::Point>(0);
+
+  for(auto iter = table.begin(); iter != table.end(); ++iter){
+    auto pair = *iter;
+    cout << pair.first.toSec() << endl;
+  }
+
   db.erase();
 }

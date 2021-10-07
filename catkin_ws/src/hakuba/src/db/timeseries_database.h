@@ -19,9 +19,10 @@ private:
 
   TimeSeriesTableIterator();
   TimeSeriesTableIterator(const TableIterator &iter);
-  TimeSeriesTableIterator(const TimeSeriesTableIterator<T> &other);
 
 public:
+  TimeSeriesTableIterator(const TimeSeriesTableIterator<T> &other);
+
   static TimeSeriesTableIterator end(){
     return TimeSeriesTableIterator<T>();
   }

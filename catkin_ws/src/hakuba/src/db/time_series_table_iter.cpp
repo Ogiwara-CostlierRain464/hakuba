@@ -2,6 +2,7 @@
 
 using namespace std;
 
+
 template<class T>
 TimeSeriesTableIterator<T>::TimeSeriesTableIterator()= default;
 
@@ -16,7 +17,7 @@ template<class T>
 TimeSeriesTableIterator<T>&
   TimeSeriesTableIterator<T>::operator++(){
   ++iterator;
-  return this;
+  return *this;
 }
 
 template<class T>
@@ -24,6 +25,8 @@ std::pair<ros::Time,T> TimeSeriesTableIterator<T>::operator*(){
   namespace ser = ros::serialization;
 
   auto ref_bytes = iterator.operator*();
+  assert(!ref_bytes.empty() && "You can't call in this situation.");
+
   std::vector<std::vector<uint8_t>> bytes{};
   std::vector<uint8_t> record_(ref_bytes.begin(), ref_bytes.end());
   ::tuple::decode(record_, bytes);

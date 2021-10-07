@@ -34,7 +34,9 @@ add_executable(time_sync
   ${PROJECT_SOURCES}
   ${PROJECT_HEADERS}
   src/db/table_iter.cpp
-)
+  src/db/time_series_table_iter.cpp
+
+        )
 target_link_libraries(time_sync
   ${catkin_LIBRARIES}
 )
@@ -51,7 +53,9 @@ file(GLOB_RECURSE TEST_SOURCES test/*.cpp)
 ## Add gtest based cpp test target and link libraries
 catkin_add_gtest(${PROJECT_NAME}-test
         ${TEST_SOURCES}
+        ${PROJECT_HEADERS}
         src/db/table_iter.cpp
+        src/db/time_series_table_iter.cpp
 )
 if(TARGET ${PROJECT_NAME}-test)
   target_link_libraries(${PROJECT_NAME}-test  ${catkin_LIBRARIES})
