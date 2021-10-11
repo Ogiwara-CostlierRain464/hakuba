@@ -117,9 +117,9 @@ private:
  */
 class TimeSeriesDB{
 public:
-  explicit TimeSeriesDB(const std::string &path)
+  explicit TimeSeriesDB(const std::string &path, size_t pool_size =  100'000'000 / PAGE_SIZE)
   // 100MB
-  : db(std::move(DB(path, 100'000'000 / PAGE_SIZE))){}
+  : db(std::move(DB(path, pool_size))){}
 
   template<class T>
   TimeSeriesTable<T> loadTable(size_t table_id){
