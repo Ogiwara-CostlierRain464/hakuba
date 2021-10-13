@@ -19,7 +19,6 @@ public:
       ))),
     path(path)
     {}
-
   ~DB(){
     // Flush to non-volatile memory when this instance removed.
     bufMgr.flush();
@@ -38,6 +37,10 @@ public:
     size_t new_table_id;
     assert(tableList.tryPushBack(tmp.rootPageId, new_table_id) && "Can't create table any more");
     return std::make_pair(tmp, new_table_id);
+  }
+
+  void flush(){
+    bufMgr.flush();
   }
 
   void erase(){
