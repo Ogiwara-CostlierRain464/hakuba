@@ -9,20 +9,17 @@
 // 1: PoseWithCovariance
 class Recorder{
 public:
-  explicit Recorder(const std::string &save_path)
-  : db(save_path), odom_table(db.createTable().first){}
+  explicit Recorder(const std::string &save_path,
+                    ros::NodeHandle &nh_)
+  : db(save_path),
+  odom_table(db.createTable().first),
+  nh(nh_){}
 
   void callback_odom(const topic_tools::ShapeShifter &msg){
     odom_table.insert(ros::Time::now(), msg );
   }
 
   int run(){
-    ros::NodeHandle nh;
-    if(!nh.ok()){
-      return 0;
-    }
-    ros::Time::waitForValid();
-
     auto first = ros::Time::now();
 
     ros::Subscriber subscriber =
@@ -44,6 +41,7 @@ public:
 private:
   GenericDB db;
   GenericTable odom_table;
+  ros::NodeHandle &nh;
 };
 
 #endif //ROSDB_RECORDER_H

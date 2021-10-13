@@ -137,6 +137,10 @@ public:
     db.erase();
   }
 
+  void flush(){
+    db.flush();
+  }
+
 private:
   DB db;
 };

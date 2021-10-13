@@ -69,6 +69,8 @@ struct GridMap{
         PointCloud laserPointsRobot;
         PointCloud laserPointGlobal;
 
+        tfListener.waitForTransform()
+
         projector.projectLaser(scan, laserPointsRobot);
         laserPointsRobot.header.frame_id = "base_link";
         tfListener.transformPointCloud("odom", laserPointsRobot.header.stamp, laserPointsRobot,

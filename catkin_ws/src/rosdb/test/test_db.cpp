@@ -107,6 +107,7 @@ TEST_F(DBTest, insert_many){
     }
     auto t = db.loadTable<geometry_msgs::Point>(0);
     ASSERT_TRUE(true);
+    db.flush();
   }
 
   TimeSeriesDB db("/tmp/many.data");
@@ -137,6 +138,7 @@ TEST_F(DBTest, time_iter){
       point.x = (double) i; point.y = (double) (2 * i); point.z = (double)  (3 * i);
       table.insert(ros::Time::now(), point);
     }
+    db.flush();
   }
 
   TimeSeriesDB db("/tmp/time_iter.data");
