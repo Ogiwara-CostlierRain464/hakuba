@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   rostime
   laser_geometry
+  topic_tools
 )
 
 catkin_package(
@@ -27,26 +28,39 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp)
+file(GLOB_RECURSE RECORDER_SOURCES src/*.cpp)
+file(GLOB_RECURSE PLAYER_SOURCES src/*.cpp)
 file(GLOB_RECURSE PROJECT_HEADERS src/*.h)
 
-add_executable(ros_db
-  ${PROJECT_SOURCES}
+list(REMOVE_ITEM RECORDER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/play.cpp)
+list(REMOVE_ITEM PLAYER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/record.cpp)
+
+add_executable(record
+  ${RECORDER_SOURCES}
   ${PROJECT_HEADERS}
 )
 
-target_link_libraries(ros_db
+add_executable(play
+  ${PLAYER_SOURCES}
+  ${PROJECT_HEADERS}
+)
+
+target_link_libraries(record
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(play
   ${catkin_LIBRARIES}
 )
 
 file(GLOB_RECURSE TEST_SOURCES test/*.cpp)
 
-list(REMOVE_ITEM PROJECT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+list(REMOVE_ITEM RECORDER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/record.cpp)
 
 catkin_add_gtest(${PROJECT_NAME}-test
   ${TEST_SOURCES}
+  ${RECORDER_SOURCES}
   ${PROJECT_HEADERS}
-  ${PROJECT_SOURCES}
 )
 
 if(TARGET ${PROJECT_NAME}-test)
